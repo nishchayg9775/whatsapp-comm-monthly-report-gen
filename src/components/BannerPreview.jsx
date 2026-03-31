@@ -7,6 +7,8 @@ const FONT_FAMILIES = {
   Trebuchet: "'Trebuchet MS', sans-serif",
 }
 
+const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`
+
 function resolveFontFamily(fontFamily) {
   return FONT_FAMILIES[fontFamily] || FONT_FAMILIES.Outfit
 }
@@ -751,7 +753,7 @@ const BannerPreview = forwardRef(function BannerPreview(
         isLocked={isTemplateLocked}
       >
         <img
-          src="/logo.png"
+          src={LOGO_SRC}
           alt="Univest"
           crossOrigin="anonymous"
           style={{
