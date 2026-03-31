@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { toPng } from 'html-to-image'
+import { toCanvas, toPng } from 'html-to-image'
 import BannerPreview from './components/BannerPreview'
 import EditorPanel from './components/EditorPanel'
 import {
@@ -413,6 +413,31 @@ function downloadTextFile(filename, content) {
   URL.revokeObjectURL(url)
 }
 
+function downloadBlobFile(filename, blob) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function formatBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 KB'
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(bytes < 50 * 1024 ? 1 : 0)} KB`
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+function canvasToBlob(canvas, type, quality) {
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => resolve(blob), type, quality)
+  })
+}
+
 function pushHistory(current, nextPresent) {
   return {
     past: [...current.past.slice(-(HISTORY_LIMIT - 1)), current.present],
@@ -434,6 +459,7 @@ function App() {
   const [previewScale, setPreviewScale] = useState(1)
   const [previewZoom, setPreviewZoom] = useState(1)
   const [showPreviewTools, setShowPreviewTools] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
   const [mode, setMode] = useState('manual')
   const [csvState, setCsvState] = useState(DEFAULT_CSV_STATE)
   const [hasSavedLayout, setHasSavedLayout] = useState(() => {
@@ -604,6 +630,87 @@ function App() {
       setIsExporting(false)
     }
   }
+
+  const handleSmartExport = useCallback(
+    async ({ label, targetBytes, type, extension, backgroundColor = '#0f2e28' }) => {
+      if (!bannerRef.current) {
+        return
+      }
+
+      setIsExporting(true)
+      try {
+        await document.fonts.ready
+        const reportSlug =
+          data.reportType === 'weekly'
+            ? 'weekly'
+            : `monthly-${data.month.toLowerCase().replace(/\s+/g, '-')}`
+
+        const scales = targetBytes <= 30 * 1024 ? [1.4, 1.2, 1] : [2, 1.75, 1.5, 1.25]
+        const qualities = type === 'image/webp' ? [0.9, 0.82, 0.74, 0.66, 0.58, 0.5, 0.42, 0.34] : [0.92, 0.86, 0.8, 0.72, 0.64, 0.56, 0.48]
+
+        let bestBlob = null
+
+        for (const scale of scales) {
+          const canvas = await toCanvas(bannerRef.current, {
+            cacheBust: true,
+            backgroundColor,
+            canvasWidth: Math.round(TEMPLATE_WIDTH * scale),
+            canvasHeight: Math.round(TEMPLATE_HEIGHT * scale),
+            pixelRatio: 1,
+          })
+
+          for (const quality of qualities) {
+            const blob = await canvasToBlob(canvas, type, quality)
+            if (!blob) {
+              continue
+            }
+            if (!bestBlob || blob.size < bestBlob.size) {
+              bestBlob = blob
+            }
+            if (blob.size <= targetBytes) {
+              downloadBlobFile(`stock-banner-${reportSlug}-${label}.${extension}`, blob)
+              pushToast(`${label} exported • ${formatBytes(blob.size)}`)
+              return
+            }
+          }
+        }
+
+        if (bestBlob) {
+          downloadBlobFile(`stock-banner-${reportSlug}-${label}.${extension}`, bestBlob)
+          pushToast(`${label} exported closest match • ${formatBytes(bestBlob.size)}`)
+          return
+        }
+
+        pushToast(`${label} export failed`)
+      } catch (error) {
+        console.error(`Failed to export ${label}`, error)
+        pushToast(`${label} export failed`)
+      } finally {
+        setIsExporting(false)
+      }
+    },
+    [data.month, data.reportType, pushToast]
+  )
+
+  const handleWpPnExport = useCallback(() => {
+    handleSmartExport({
+      label: 'wp-pn',
+      targetBytes: 30 * 1024,
+      type: 'image/jpeg',
+      extension: 'jpg',
+      backgroundColor: '#0f2e28',
+    })
+  }, [handleSmartExport])
+
+  const handleWpCommExport = useCallback(() => {
+    handleSmartExport({
+      label: 'wp-comm',
+      targetBytes: 500 * 1024,
+      type: 'image/jpeg',
+      extension: 'jpg',
+      backgroundColor: '#0f2e28',
+    })
+  }, [handleSmartExport])
 
   const handleSaveLayout = useCallback(() => {
     persistSavedLayoutState(history.present)
@@ -1256,51 +1363,86 @@ function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(40,116,90,0.22),_transparent_36%),linear-gradient(180deg,#071310_0%,#0a1714_100%)] text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="mb-5 flex flex-col gap-4 rounded-[28px] border border-white/10 bg-white/5 px-5 py-5 shadow-[0_20px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl lg:flex-row lg:items-center lg:justify-between">
-          <div className="max-w-2xl">
-            <h1 className="text-lg font-black tracking-tight text-white sm:text-[1.4rem]">
-              Monthly Report Banner Gen WP-Comm
-            </h1>
-          </div>
+        <header className="mb-5 rounded-[28px] border border-white/10 bg-white/5 px-5 py-5 shadow-[0_20px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0 max-w-[540px]">
+              <h1 className="text-xl font-black tracking-tight text-white sm:text-[1.8rem]">
+                Monthly Report Banner Gen WP-Comm
+              </h1>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-white/70">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{data.reportType === 'weekly' ? 'Weekly' : 'Monthly'}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{selectedTemplate.shortName}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{mode === 'auto' ? 'Auto Mode' : 'Manual Mode'}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{csvState.rows.length ? `${csvState.rows.length} CSV Rows` : 'No CSV'}</span>
+              </div>
+            </div>
 
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-white/70">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{selectedTemplate.name}</span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{mode === 'auto' ? 'Auto Mode' : 'Manual Mode'}</span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{csvState.rows.length ? `${csvState.rows.length} CSV Rows` : 'No CSV Loaded'}</span>
-          </div>
+            <div className="flex flex-col items-start gap-3 xl:items-end">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleUndo}
+                  disabled={!canUndo}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
+                >
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRedo}
+                  disabled={!canRedo}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
+                >
+                  Redo
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveLayout}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                >
+                  Save Layout
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  disabled={isExporting}
+                  className="rounded-full bg-[linear-gradient(135deg,#3fe391_0%,#23b86d_100%)] px-5 py-2.5 text-sm font-bold text-[#082116] shadow-[0_18px_40px_rgba(39,196,116,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  {isExporting ? 'Rendering...' : 'Download PNG'}
+                </button>
+              </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleUndo}
-              disabled={!canUndo}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
-            >
-              Undo
-            </button>
-            <button
-              type="button"
-              onClick={handleRedo}
-              disabled={!canRedo}
-              className="rounded-full border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
-            >
-              Redo
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveLayout}
-              className="rounded-full border border-white/15 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
-            >
-              Save Layout
-            </button>
-            <button
-              type="button"
-              onClick={handleExport}
-              disabled={isExporting}
-              className="rounded-full bg-[linear-gradient(135deg,#3fe391_0%,#23b86d_100%)] px-5 py-3 text-sm font-bold text-[#082116] shadow-[0_18px_40px_rgba(39,196,116,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
-            >
-              {isExporting ? 'Rendering PNG...' : 'Download PNG'}
-            </button>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowExportMenu((current) => !current)}
+                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                >
+                  {showExportMenu ? 'Hide Export Presets' : 'More Export Presets'}
+                </button>
+
+                {showExportMenu ? (
+                  <div className="absolute right-0 top-[calc(100%+10px)] z-20 flex min-w-[220px] flex-col gap-2 rounded-[20px] border border-white/10 bg-[#12201b]/95 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                    <button
+                      type="button"
+                      onClick={handleWpPnExport}
+                      disabled={isExporting}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
+                    >
+                      WP PN &lt;30KB
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleWpCommExport}
+                      disabled={isExporting}
+                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
+                    >
+                      WP Comm &lt;500KB
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            </div>
           </div>
         </header>
 
@@ -1449,6 +1591,10 @@ function App() {
               onRedo={handleRedo}
               canUndo={canUndo}
               canRedo={canRedo}
+              onExportPng={handleExport}
+              onExportWpPn={handleWpPnExport}
+              onExportWpComm={handleWpCommExport}
+              isExporting={isExporting}
             />
           </aside>
         </main>

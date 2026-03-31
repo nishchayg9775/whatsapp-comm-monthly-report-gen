@@ -124,6 +124,10 @@ export default function EditorPanel(props) {
     onRedo,
     canUndo,
     canRedo,
+    onExportPng,
+    onExportWpPn,
+    onExportWpComm,
+    isExporting,
   } = props
 
   const [activeTab, setActiveTab] = useState('Data')
@@ -324,15 +328,20 @@ export default function EditorPanel(props) {
             <Section
               title={`${data.reportType === 'weekly' ? 'Weekly' : 'Monthly'} Templates`}
               description="Template choice current report type ke liye alag save hoti hai."
-              action={<Button onClick={() => setShowTemplateRail((current) => !current)}>{showTemplateRail ? 'Hide Templates' : 'Browse Templates'}</Button>}
+              action={
+                <Button className="whitespace-nowrap px-4" onClick={() => setShowTemplateRail((current) => !current)}>
+                  {showTemplateRail ? 'Hide Templates' : 'Browse All'}
+                </Button>
+              }
             >
-              <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mb-3 space-y-3">
                 <div className="max-w-[30ch]">
                   <div className="text-sm font-bold text-white">{activeTemplate?.name}</div>
                   <div className="mt-1 text-sm leading-5 text-white/55">{activeTemplate?.description}</div>
                 </div>
-                <div className="shrink-0">
-                  <Pill>{templates.length} {data.reportType === 'weekly' ? 'weekly' : 'monthly'} templates</Pill>
+                <div className="flex flex-wrap gap-2">
+                  <Pill>{templates.length} templates</Pill>
+                  <Pill>{data.reportType === 'weekly' ? 'Weekly mode' : 'Monthly mode'}</Pill>
                 </div>
               </div>
               {showTemplateRail ? (
@@ -459,6 +468,18 @@ export default function EditorPanel(props) {
 
         {activeTab === 'Export' ? (
           <>
+            <Section title="Delivery Export" description="Ready presets for WhatsApp publishing limits.">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button onClick={onExportPng} tone="primary" disabled={isExporting}>Download PNG</Button>
+                <Button onClick={onExportWpComm} disabled={isExporting}>WP Comm &lt;500KB</Button>
+                <Button onClick={onExportWpPn} disabled={isExporting}>WP PN &lt;30KB</Button>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Pill>PNG: full quality master</Pill>
+                <Pill tone="good">WP Comm: optimized JPG</Pill>
+                <Pill tone="good">WP PN: optimized JPG</Pill>
+              </div>
+            </Section>
             <Section title="Quick Actions" description="Most-used actions grouped together.">
               <div className="grid gap-3 sm:grid-cols-2">
                 <Button onClick={onUndo} disabled={!canUndo}>Undo</Button>
