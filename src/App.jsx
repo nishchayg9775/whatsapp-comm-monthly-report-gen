@@ -24,10 +24,10 @@ import {
 const TEMPLATE_WIDTH = 800
 const TEMPLATE_HEIGHT = 400
 const HISTORY_LIMIT = 80
-const SAVED_LAYOUT_STORAGE_KEY = 'stock-banner-generator-saved-layout-v4'
+const SAVED_LAYOUT_STORAGE_KEY = 'stock-banner-generator-saved-layout-v5'
 const CSV_MAPPING_STORAGE_KEY = 'stock-banner-generator-csv-mappings-v1'
 const TEMPLATE_LOCK_STORAGE_KEY = 'stock-banner-generator-template-lock-v1'
-const SELECTED_TEMPLATE_STORAGE_KEY = 'stock-banner-generator-selected-template-v1'
+const SELECTED_TEMPLATES_STORAGE_KEY = 'stock-banner-generator-selected-templates-v2'
 const DEFAULT_CSV_STATE = {
   fileName: '',
   columns: [],
@@ -40,6 +40,19 @@ const DEFAULT_CSV_STATE = {
   headerSignature: '',
   filePattern: '',
   error: '',
+}
+
+function getActiveCardLayoutKey(reportType) {
+  return reportType === 'weekly' ? 'weeklyRows' : 'monthlyCards'
+}
+
+function getSelectedTemplateIdFromState(state) {
+  return (
+    state?.selectedTemplateIds?.[state?.data?.reportType || 'monthly'] ||
+    state?.selectedTemplateIds?.monthly ||
+    state?.selectedTemplateId ||
+    DEFAULT_TEMPLATE_ID
+  )
 }
 
 function parseSelectedLayerId(layerId) {
@@ -74,6 +87,7 @@ function parseSelectedLayerId(layerId) {
 
 function createDefaultData() {
   return {
+    reportType: 'monthly',
     month: getCurrentMonthName(),
     totalProfits: '120',
     extraCount: '116',
@@ -88,34 +102,61 @@ function createDefaultData() {
   }
 }
 
-function loadSelectedTemplateId() {
+function loadSelectedTemplateIds() {
   if (typeof window === 'undefined') {
-    return DEFAULT_TEMPLATE_ID
+    return {
+      monthly: DEFAULT_TEMPLATE_ID,
+      weekly: DEFAULT_TEMPLATE_ID,
+    }
   }
 
   try {
-    return window.localStorage.getItem(SELECTED_TEMPLATE_STORAGE_KEY) || DEFAULT_TEMPLATE_ID
+    const raw = window.localStorage.getItem(SELECTED_TEMPLATES_STORAGE_KEY)
+    if (!raw) {
+      return {
+        monthly: DEFAULT_TEMPLATE_ID,
+        weekly: DEFAULT_TEMPLATE_ID,
+      }
+    }
+    const parsed = JSON.parse(raw)
+    return {
+      monthly: parsed?.monthly || DEFAULT_TEMPLATE_ID,
+      weekly: parsed?.weekly || parsed?.monthly || DEFAULT_TEMPLATE_ID,
+    }
   } catch (error) {
-    console.error('Failed to load selected template', error)
+    console.error('Failed to load selected templates', error)
   }
 
-  return DEFAULT_TEMPLATE_ID
+  return {
+    monthly: DEFAULT_TEMPLATE_ID,
+    weekly: DEFAULT_TEMPLATE_ID,
+  }
 }
 
-function persistSelectedTemplateId(templateId) {
+function persistSelectedTemplateIds(templateIds) {
   if (typeof window === 'undefined') {
     return
   }
 
   try {
-    window.localStorage.setItem(SELECTED_TEMPLATE_STORAGE_KEY, templateId)
+    window.localStorage.setItem(SELECTED_TEMPLATES_STORAGE_KEY, JSON.stringify(templateIds))
   } catch (error) {
-    console.error('Failed to persist selected template', error)
+    console.error('Failed to persist selected templates', error)
   }
 }
 
-function createCardTextStyle(templateId = DEFAULT_TEMPLATE_ID) {
+function createCardTextStyle(templateId = DEFAULT_TEMPLATE_ID, reportType = 'monthly') {
   const template = getBannerTemplate(templateId)
+
+  if (reportType === 'weekly') {
+    return {
+      category: { x: 0, y: 0, fontSize: 12.5, fontWeight: 900, letterSpacing: -0.01, fontStyle: 'normal', textTransform: 'uppercase', fontFamily: template.typography.cardFont, color: '' },
+      value: { x: 0, y: 0, fontSize: 14.5, fontWeight: 900, letterSpacing: -0.03, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.cardFont, color: '' },
+      duration: { x: 0, y: 0, fontSize: 8.7, fontWeight: 700, letterSpacing: -0.015, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.bodyFont, color: '' },
+      stock: { x: 0, y: 0, fontSize: 11.5, fontWeight: 800, letterSpacing: -0.02, fontStyle: 'normal', textTransform: 'uppercase', fontFamily: template.typography.cardFont, color: '' },
+    }
+  }
+
   return {
     category: { x: 0, y: 0, fontSize: 14, fontWeight: 900, letterSpacing: 0, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.cardFont, color: '' },
     value: { x: 0, y: 0, fontSize: 30, fontWeight: 900, letterSpacing: -0.05, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.cardFont, color: '' },
@@ -124,24 +165,40 @@ function createCardTextStyle(templateId = DEFAULT_TEMPLATE_ID) {
   }
 }
 
-function createDefaultTextStyles(templateId = DEFAULT_TEMPLATE_ID) {
+function createDefaultTextStyles(templateId = DEFAULT_TEMPLATE_ID, reportType = 'monthly') {
   const template = getBannerTemplate(templateId)
+
+  if (reportType === 'weekly') {
+    return {
+      heading: { x: 0, y: 0, fontSize: 28, fontWeight: 800, letterSpacing: -0.02, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.headingFont, color: '' },
+      extra: { x: 0, y: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: 0, fontStyle: 'normal', textTransform: 'uppercase', fontFamily: template.typography.headingFont, color: '' },
+      disclaimer: { x: 0, y: 0, fontSize: 5.8, fontWeight: 400, letterSpacing: -0.005, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.bodyFont, color: '' },
+      cards: Array.from({ length: 4 }, () => createCardTextStyle(templateId, reportType)),
+    }
+  }
+
   return {
     heading: { x: 0, y: 4, fontSize: 35, fontWeight: 800, letterSpacing: 0, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.headingFont, color: '' },
     extra: { x: 0, y: 0, fontSize: 18, fontWeight: 600, letterSpacing: 0, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.headingFont, color: '' },
     disclaimer: { x: 0, y: 0, fontSize: 7.4, fontWeight: 400, letterSpacing: -0.01, fontStyle: 'normal', textTransform: 'none', fontFamily: template.typography.bodyFont, color: '' },
-    cards: Array.from({ length: 4 }, () => createCardTextStyle(templateId)),
+    cards: Array.from({ length: 4 }, () => createCardTextStyle(templateId, reportType)),
   }
 }
 
 function createDefaultLayoutStyles() {
   return {
     logo: { x: 342, y: -4, scale: 1 },
-    cards: [
+    monthlyCards: [
       { x: 60, y: 132, scale: 0.9 },
       { x: 233, y: 132, scale: 0.9 },
       { x: 406, y: 132, scale: 0.9 },
       { x: 579, y: 132, scale: 0.9 },
+    ],
+    weeklyRows: [
+      { x: 58, y: 124, scale: 1 },
+      { x: 58, y: 167, scale: 1 },
+      { x: 58, y: 210, scale: 1 },
+      { x: 58, y: 253, scale: 1 },
     ],
   }
 }
@@ -150,14 +207,20 @@ function createDefaultCardColorStyles(templateId = DEFAULT_TEMPLATE_ID, cards = 
   return cards.map((card) => getTemplateCardColors(templateId, card.category))
 }
 
-function createTemplateTextStyles(templateId) {
-  return createDefaultTextStyles(templateId)
+function createTemplateTextStyles(templateId, reportType = 'monthly') {
+  return createDefaultTextStyles(templateId, reportType)
 }
 
 function normalizeDesignState(maybeDesignState) {
-  const templateId = maybeDesignState?.selectedTemplateId || loadSelectedTemplateId()
-  const defaults = createDefaultDesignState(templateId)
+  const selectedTemplateIds = maybeDesignState?.selectedTemplateIds || loadSelectedTemplateIds()
+  const templateId =
+    selectedTemplateIds?.[maybeDesignState?.data?.reportType || 'monthly'] ||
+    maybeDesignState?.selectedTemplateId ||
+    DEFAULT_TEMPLATE_ID
+  const reportType = maybeDesignState?.data?.reportType || 'monthly'
+  const defaults = createDefaultDesignState(templateId, reportType)
   const source = maybeDesignState ?? {}
+  const legacyCards = source.layoutStyles?.cards ?? []
 
   return {
     data: {
@@ -199,27 +262,53 @@ function normalizeDesignState(maybeDesignState) {
         ...defaults.layoutStyles.logo,
         ...(source.layoutStyles?.logo ?? {}),
       },
-      cards: defaults.layoutStyles.cards.map((card, index) => ({
+      monthlyCards: defaults.layoutStyles.monthlyCards.map((card, index) => ({
         ...card,
-        ...(source.layoutStyles?.cards?.[index] ?? {}),
+        ...(source.layoutStyles?.monthlyCards?.[index] ?? legacyCards[index] ?? {}),
+      })),
+      weeklyRows: defaults.layoutStyles.weeklyRows.map((card, index) => ({
+        ...card,
+        ...(source.layoutStyles?.weeklyRows?.[index] ?? {}),
       })),
     },
     cardColorStyles: defaults.cardColorStyles.map((cardColors, index) => ({
       ...cardColors,
       ...(source.cardColorStyles?.[index] ?? {}),
     })),
-    selectedTemplateId: templateId,
+    selectedTemplateIds: {
+      ...defaults.selectedTemplateIds,
+      ...(source.selectedTemplateIds ?? {}),
+      weekly:
+        source.selectedTemplateIds?.weekly ||
+        source.selectedTemplateIds?.monthly ||
+        source.selectedTemplateId ||
+        defaults.selectedTemplateIds.weekly,
+      monthly:
+        source.selectedTemplateIds?.monthly ||
+        source.selectedTemplateId ||
+        defaults.selectedTemplateIds.monthly,
+    },
+    selectedTemplateId:
+      source.selectedTemplateIds?.[reportType] ||
+      source.selectedTemplateId ||
+      templateId,
   }
 }
 
-function createDefaultDesignState(templateId = loadSelectedTemplateId()) {
+function createDefaultDesignState(templateId, reportType = 'monthly') {
   const data = createDefaultData()
+  const selectedTemplateIds = loadSelectedTemplateIds()
+  const resolvedTemplateId = templateId || selectedTemplateIds[reportType] || selectedTemplateIds.monthly || DEFAULT_TEMPLATE_ID
   return {
-    data,
-    textStyles: createDefaultTextStyles(templateId),
+    data: {
+      ...data,
+      reportType,
+    },
+    textStyles: createDefaultTextStyles(resolvedTemplateId, reportType),
     layoutStyles: createDefaultLayoutStyles(),
-    cardColorStyles: createDefaultCardColorStyles(templateId, data.cards),
-    selectedTemplateId: templateId,
+    cardColorStyles: createDefaultCardColorStyles(resolvedTemplateId, data.cards),
+    selectedTemplateIds,
+    selectedTemplateId: resolvedTemplateId,
   }
 }
 
@@ -344,6 +433,7 @@ function App() {
   const [isExporting, setIsExporting] = useState(false)
   const [previewScale, setPreviewScale] = useState(1)
   const [previewZoom, setPreviewZoom] = useState(1)
+  const [showPreviewTools, setShowPreviewTools] = useState(false)
   const [mode, setMode] = useState('manual')
   const [csvState, setCsvState] = useState(DEFAULT_CSV_STATE)
   const [hasSavedLayout, setHasSavedLayout] = useState(() => {
@@ -361,8 +451,12 @@ function App() {
   const previewStageRef = useRef(null)
   const bannerRef = useRef(null)
 
-  const { data, textStyles, layoutStyles, cardColorStyles, selectedTemplateId } = history.present
+  const { data, textStyles, layoutStyles, cardColorStyles } = history.present
+  const selectedTemplateId = getSelectedTemplateIdFromState(history.present)
+  const selectedTemplateIds = history.present.selectedTemplateIds || loadSelectedTemplateIds()
   const selectedTemplate = useMemo(() => getBannerTemplate(selectedTemplateId), [selectedTemplateId])
+  const activeCardLayoutKey = getActiveCardLayoutKey(data.reportType)
+  const activeCardLayouts = layoutStyles[activeCardLayoutKey]
   const effectivePreviewScale = Math.min(1.4, Math.max(0.6, previewScale * previewZoom))
   const canUndo = history.past.length > 0
   const canRedo = history.future.length > 0
@@ -411,8 +505,8 @@ function App() {
   }, [isTemplateLocked])
 
   useEffect(() => {
-    persistSelectedTemplateId(selectedTemplateId)
-  }, [selectedTemplateId])
+    persistSelectedTemplateIds(selectedTemplateIds)
+  }, [selectedTemplateIds])
 
   useEffect(() => {
     if (!toastMessage) {
@@ -495,7 +589,11 @@ function App() {
         pixelRatio: 1,
       })
       const link = document.createElement('a')
-      link.download = `stock-banner-${data.month.toLowerCase().replace(/\s+/g, '-')}.png`
+      const reportSlug =
+        data.reportType === 'weekly'
+          ? 'weekly'
+          : `monthly-${data.month.toLowerCase().replace(/\s+/g, '-')}`
+      link.download = `stock-banner-${reportSlug}.png`
       link.href = dataUrl
       link.click()
       pushToast('PNG downloaded')
@@ -565,6 +663,28 @@ function App() {
     setMode(nextMode)
     pushToast(nextMode === 'auto' ? 'Auto mode enabled' : 'Manual mode enabled')
   }, [pushToast])
+
+  const handleReportTypeChange = useCallback((nextReportType) => {
+    const nextTemplateId =
+      history.present.selectedTemplateIds?.[nextReportType] ||
+      history.present.selectedTemplateIds?.monthly ||
+      selectedTemplateId
+    const nextTextStyles = createDefaultTextStyles(nextTemplateId, nextReportType)
+    applyDesignUpdate((current) => ({
+      ...current,
+      data: {
+        ...current.data,
+        reportType: nextReportType,
+      },
+      selectedTemplateId: nextTemplateId,
+      textStyles: nextTextStyles,
+      cardColorStyles: current.data.cards.map((card) => getTemplateCardColors(nextTemplateId, card.category)),
+    }))
+    setSelectedLayerId(null)
+    setSelectedLayerIds([])
+    setEditingLayerId(null)
+    pushToast(nextReportType === 'weekly' ? 'Weekly report enabled' : 'Monthly report enabled')
+  }, [applyDesignUpdate, pushToast, selectedTemplateId, history.present.selectedTemplateIds])
 
   const handleCsvUpload = useCallback(async (file) => {
     if (!file) {
@@ -679,7 +799,7 @@ function App() {
         field === 'category'
           ? current.cardColorStyles.map((cardColors, index) =>
               index === cardIndex
-                ? getTemplateCardColors(current.selectedTemplateId, value)
+                ? getTemplateCardColors(getSelectedTemplateIdFromState(current), value)
                 : cardColors
             )
           : current.cardColorStyles,
@@ -723,7 +843,9 @@ function App() {
       ...current,
       layoutStyles: {
         ...current.layoutStyles,
-        cards: current.layoutStyles.cards.map((card, index) =>
+        [getActiveCardLayoutKey(current.data.reportType)]: current.layoutStyles[
+          getActiveCardLayoutKey(current.data.reportType)
+        ].map((card, index) =>
           index === cardIndex ? { ...card, ...updates } : card
         ),
       },
@@ -743,7 +865,7 @@ function App() {
     applyDesignUpdate((current) => ({
       ...current,
       cardColorStyles: current.cardColorStyles.map((cardColors, index) =>
-        index === cardIndex ? getTemplateCardColors(current.selectedTemplateId, category) : cardColors
+        index === cardIndex ? getTemplateCardColors(getSelectedTemplateIdFromState(current), category) : cardColors
       ),
     }))
   }, [applyDesignUpdate])
@@ -752,15 +874,19 @@ function App() {
     applyDesignUpdate((current) => ({
       ...current,
       cardColorStyles: current.data.cards.map((card) =>
-        getTemplateCardColors(current.selectedTemplateId, card.category)
+        getTemplateCardColors(getSelectedTemplateIdFromState(current), card.category)
       ),
     }))
   }, [applyDesignUpdate])
 
   const handleTemplateChange = useCallback((templateId) => {
-    const templateTextStyles = createTemplateTextStyles(templateId)
+    const templateTextStyles = createTemplateTextStyles(templateId, data.reportType)
     applyDesignUpdate((current) => ({
       ...current,
+      selectedTemplateIds: {
+        ...(current.selectedTemplateIds || loadSelectedTemplateIds()),
+        [current.data.reportType]: templateId,
+      },
       selectedTemplateId: templateId,
       textStyles: {
         ...current.textStyles,
@@ -798,11 +924,11 @@ function App() {
       cardColorStyles: current.data.cards.map((card) => getTemplateCardColors(templateId, card.category)),
     }))
     pushToast(`Template: ${getBannerTemplate(templateId).shortName}`)
-  }, [applyDesignUpdate, pushToast])
+  }, [applyDesignUpdate, pushToast, data.reportType])
 
   const handleMatchTemplateTypography = useCallback(() => {
     applyDesignUpdate((current) => {
-      const templateTextStyles = createTemplateTextStyles(current.selectedTemplateId)
+      const templateTextStyles = createTemplateTextStyles(getSelectedTemplateIdFromState(current), current.data.reportType)
       return {
         ...current,
         textStyles: {
@@ -851,7 +977,7 @@ function App() {
 
   const handleAutoFitText = useCallback(() => {
     applyDesignUpdate((current) => {
-      const templateTextStyles = createTemplateTextStyles(current.selectedTemplateId)
+      const templateTextStyles = createTemplateTextStyles(getSelectedTemplateIdFromState(current), current.data.reportType)
       return {
         ...current,
         textStyles: {
@@ -893,7 +1019,23 @@ function App() {
 
   const handleCenterCards = useCallback(() => {
     applyDesignUpdate((current) => {
-      const widths = current.layoutStyles.cards.map((card) => 162 * card.scale)
+      const layoutKey = getActiveCardLayoutKey(current.data.reportType)
+      const currentLayouts = current.layoutStyles[layoutKey]
+
+      if (current.data.reportType === 'weekly') {
+        return {
+          ...current,
+          layoutStyles: {
+            ...current.layoutStyles,
+            [layoutKey]: currentLayouts.map((row) => ({
+              ...row,
+              x: Number(((TEMPLATE_WIDTH - 684 * row.scale) / 2).toFixed(1)),
+            })),
+          },
+        }
+      }
+
+      const widths = currentLayouts.map((card) => 162 * card.scale)
       const totalWidth = widths.reduce((sum, width) => sum + width, 0)
       const gap = Math.max(8, (TEMPLATE_WIDTH - totalWidth) / 5)
       let runningX = gap
@@ -902,7 +1044,7 @@ function App() {
         ...current,
         layoutStyles: {
           ...current.layoutStyles,
-          cards: current.layoutStyles.cards.map((card, index) => {
+          [layoutKey]: currentLayouts.map((card, index) => {
             const nextCard = {
               ...card,
               x: Number(runningX.toFixed(1)),
@@ -939,6 +1081,7 @@ function App() {
       }
 
       applyDesignUpdate((current) => {
+        const layoutKey = getActiveCardLayoutKey(current.data.reportType)
         const next = {
           ...current,
           textStyles: {
@@ -947,7 +1090,7 @@ function App() {
           },
           layoutStyles: {
             ...current.layoutStyles,
-            cards: [...current.layoutStyles.cards],
+            [layoutKey]: [...current.layoutStyles[layoutKey]],
           },
         }
 
@@ -964,8 +1107,8 @@ function App() {
               y: next.layoutStyles.logo.y + deltaY,
             }
           } else if (selected.kind === 'cardFrame') {
-            const currentCard = next.layoutStyles.cards[selected.cardIndex]
-            next.layoutStyles.cards[selected.cardIndex] = {
+            const currentCard = next.layoutStyles[layoutKey][selected.cardIndex]
+            next.layoutStyles[layoutKey][selected.cardIndex] = {
               ...currentCard,
               x: currentCard.x + deltaX,
               y: currentCard.y + deltaY,
@@ -1006,6 +1149,7 @@ function App() {
       }
 
       applyDesignUpdate((current) => {
+        const layoutKey = getActiveCardLayoutKey(current.data.reportType)
         const next = {
           ...current,
           textStyles: {
@@ -1014,7 +1158,7 @@ function App() {
           },
           layoutStyles: {
             ...current.layoutStyles,
-            cards: [...current.layoutStyles.cards],
+            [layoutKey]: [...current.layoutStyles[layoutKey]],
           },
         }
 
@@ -1030,8 +1174,8 @@ function App() {
               scale: Number(Math.max(0.2, next.layoutStyles.logo.scale + delta).toFixed(2)),
             }
           } else if (selected.kind === 'cardFrame') {
-            const currentCard = next.layoutStyles.cards[selected.cardIndex]
-            next.layoutStyles.cards[selected.cardIndex] = {
+            const currentCard = next.layoutStyles[layoutKey][selected.cardIndex]
+            next.layoutStyles[layoutKey][selected.cardIndex] = {
               ...currentCard,
               scale: Number(Math.max(0.2, currentCard.scale + delta).toFixed(2)),
             }
@@ -1171,20 +1315,31 @@ function App() {
             </div>
 
             <div ref={previewStageRef} className="overflow-hidden rounded-[24px] border border-white/8 bg-[#06110e] p-3">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/70">
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom -</button>
-                  <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
-                  <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom +</button>
+              <div className="mb-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/70">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Auto Fit Text</button>
+                    <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</button>
+                    <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Clear Selection</button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowPreviewTools((current) => !current)}
+                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80"
+                  >
+                    {showPreviewTools ? 'Hide Tools' : 'More Tools'}
+                  </button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Center Logo</button>
-                  <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Center Cards</button>
-                  <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Auto Fit Text</button>
-                  <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Match Template Typography</button>
-                  <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Reset Card Colors</button>
-                  <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Clear Selection</button>
-                </div>
+                {showPreviewTools ? (
+                  <div className="mt-2 flex flex-wrap gap-2 border-t border-white/8 pt-2">
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom -</button>
+                    <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom +</button>
+                    <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Center Logo</button>
+                    <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Match Template Typography</button>
+                    <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Reset Card Colors</button>
+                  </div>
+                ) : null}
               </div>
 
               <div className="mx-auto origin-top transition-transform duration-200 ease-out" style={{ width: TEMPLATE_WIDTH, height: TEMPLATE_HEIGHT * effectivePreviewScale }}>
@@ -1194,6 +1349,7 @@ function App() {
                     data={data}
                     textStyles={textStyles}
                     layoutStyles={layoutStyles}
+                    cardLayouts={activeCardLayouts}
                     cardColorStyles={cardColorStyles}
                     template={selectedTemplate}
                     selectedLayerId={selectedLayerId}
@@ -1224,6 +1380,9 @@ function App() {
                   Template: {selectedTemplate.shortName}
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                  Report: {data.reportType === 'weekly' ? 'Weekly' : 'Monthly'}
+                </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
                   Mode: {mode === 'auto' ? 'Auto' : 'Manual'}
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
@@ -1243,6 +1402,7 @@ function App() {
               data={data}
               textStyles={textStyles}
               layoutStyles={layoutStyles}
+              cardLayouts={activeCardLayouts}
               cardColorStyles={cardColorStyles}
               selectedTemplateId={selectedTemplateId}
               builtInTemplateOptions={BUILT_IN_TEMPLATE_OPTIONS}
@@ -1255,6 +1415,7 @@ function App() {
               hasSavedLayout={hasSavedLayout}
               isTemplateLocked={isTemplateLocked}
               onModeChange={handleModeChange}
+              onReportTypeChange={handleReportTypeChange}
               onCsvUpload={handleCsvUpload}
               onCsvMappingChange={handleCsvMappingChange}
               onFallbackCategoryChange={handleFallbackCategoryChange}

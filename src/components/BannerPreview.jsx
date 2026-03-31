@@ -69,6 +69,19 @@ function getReadableTextColor(startColor, endColor, light = '#ffffff', dark = '#
   return luminance > 0.42 ? dark : light
 }
 
+function getSafeAccentColor(color, fallback = '#18303f') {
+  if (!color) {
+    return fallback
+  }
+
+  return getRelativeLuminance(color) > 0.62 ? fallback : color
+}
+
+function getWeeklyHeaderColor(template) {
+  const lightVariants = new Set(['minimal', 'softFrame', 'ribbonStack', 'sidebandClean'])
+  return lightVariants.has(template.cards.variant) ? 'rgba(29,39,49,0.88)' : 'rgba(255,255,255,0.88)'
+}
+
 function buildCardAppearance(cardColors) {
   return {
     tab: `linear-gradient(180deg, ${cardColors.tabStart} 0%, ${cardColors.tabEnd} 100%)`,
@@ -435,7 +448,9 @@ function TextEditorOverlay({ editingLayerId, data, onFieldChange, onCardDataChan
     content = (
       <div className="grid gap-3 sm:grid-cols-2">
         <OverlayInput label="Total profits" value={data.totalProfits} onChange={(value) => onFieldChange('totalProfits', value)} onClose={onClose} autoFocus />
-        <OverlayInput label="Month" value={data.month} onChange={(value) => onFieldChange('month', value)} onClose={onClose} />
+        {data.reportType === 'monthly' ? (
+          <OverlayInput label="Month" value={data.month} onChange={(value) => onFieldChange('month', value)} onClose={onClose} />
+        ) : null}
       </div>
     )
   } else if (editingLayerId === 'extra') {
@@ -647,8 +662,322 @@ function BannerCardContent({ card, cardColors, template, cardStyle, selectedLaye
   )
 }
 
+function WeeklyReportRow({ card, cardColors, template, rowStyle, selectedLayerIds, onSelectLayer, onStartEditingLayer, onUpdateCardTextStyle, isTemplateLocked }) {
+  const styles = buildCardAppearance(cardColors)
+  const variant = template.cards.variant
+  const neutralText = template.cards.labelTextColor || '#1d232b'
+  const categoryFontSize = fitTextSize(card.category, Math.min(rowStyle.category.fontSize, 14), { maxChars: 10, minSize: 10, step: 0.45 })
+  const stockFontSize = fitTextSize(card.stockName, Math.min(rowStyle.stock.fontSize, 14), { maxChars: 20, minSize: 9.5, step: 0.38 })
+  const valueWithSuffix = `${card.value}${card.valueSuffix || ''}`
+  const valueFontSize = fitTextSize(valueWithSuffix, Math.min(rowStyle.value.fontSize, 16), { maxChars: 14, minSize: 9.8, step: 0.52 })
+  const durationFontSize = fitTextSize(card.duration, Math.min(rowStyle.duration.fontSize, 12), { maxChars: 14, minSize: 8.8, step: 0.34 })
+  const durationLabel = `in ${card.duration}`
+  const rowSurface =
+    variant === 'outlineNeon'
+      ? 'linear-gradient(180deg, rgba(247,252,255,0.98) 0%, rgba(239,246,251,0.98) 100%)'
+      : variant === 'glass'
+        ? 'linear-gradient(180deg, rgba(255,255,255,0.94) 0%, rgba(248,251,255,0.9) 100%)'
+        : 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(247,247,247,0.99) 100%)'
+  const stockSurface = 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(249,249,249,0.98) 100%)'
+  const returnsSurface = `linear-gradient(180deg, ${withAlpha(cardColors.tabStart, 0.1)} 0%, ${withAlpha(cardColors.tabEnd, 0.14)} 100%)`
+  const dividerColor = withAlpha(cardColors.tabEnd, 0.24)
+  const rowBorder = withAlpha(cardColors.tabEnd, variant === 'outlineNeon' ? 0.82 : 0.72)
+  const labelMap = {
+    category: 'Category Text',
+    stock: 'Stock Text',
+    value: 'Value Text',
+    duration: 'Duration Text',
+  }
+
+  const renderField = (field, content, wrapperStyle, options) => {
+    const { color, fontSize, minScale = 4, spanStyle = {} } = options
+
+    return (
+      <div style={{ position: 'absolute', zIndex: wrapperStyle.zIndex || 5, ...wrapperStyle }}>
+        <InteractiveLayer
+          layerId={rowStyle[field].layerId}
+          selectedLayerIds={selectedLayerIds}
+          onSelectLayer={onSelectLayer}
+          onMove={(position) => onUpdateCardTextStyle(field, position)}
+          position={rowStyle[field]}
+          scale={rowStyle[field].fontSize}
+          onScale={(updates) => onUpdateCardTextStyle(field, { fontSize: updates.scale })}
+          minScale={minScale}
+          selectionLabel={labelMap[field]}
+          zIndex={8}
+          onDoubleClickAction={onStartEditingLayer}
+          isLocked={isTemplateLocked}
+        >
+          <span style={{ ...textStyle(rowStyle[field]), color, fontSize, whiteSpace: 'nowrap', lineHeight: 1, display: 'block', ...spanStyle }}>{content}</span>
+        </InteractiveLayer>
+      </div>
+    )
+  }
+
+  if (variant === 'outlineNeon') {
+    const categoryColor = rowStyle.category.color || '#f5fbff'
+    const stockColor = rowStyle.stock.color || '#ecf8ff'
+    const valuePanelText = getReadableTextColor(cardColors.pillStart, cardColors.pillEnd, '#ffffff', '#10202e')
+    const valueColor = rowStyle.value.color || valuePanelText
+    const durationColor = rowStyle.duration.color || withAlpha(valuePanelText, 0.9)
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'linear-gradient(180deg, rgba(7,20,34,0.96) 0%, rgba(4,13,24,0.98) 100%)', border: `1.5px solid ${rowBorder}`, boxShadow: `0 0 0 1px ${withAlpha(cardColors.sideStart, 0.22)}, 0 16px 28px ${withAlpha(cardColors.sideEnd, 0.2)}`, overflow: 'hidden' }} />
+        <div style={{ position: 'absolute', left: 0, top: 6, width: 8, height: 26, borderRadius: '0 8px 8px 0', background: `linear-gradient(180deg, ${cardColors.tabStart} 0%, ${cardColors.tabEnd} 100%)`, boxShadow: `0 0 16px ${withAlpha(cardColors.tabEnd, 0.5)}` }} />
+        <div style={{ position: 'absolute', left: 14, top: 5, width: 112, height: 28, borderRadius: 12, background: 'linear-gradient(180deg, rgba(11,26,41,0.95) 0%, rgba(10,21,34,0.94) 100%)', border: `1px solid ${withAlpha(cardColors.tabEnd, 0.6)}`, boxShadow: `0 0 18px ${withAlpha(cardColors.tabEnd, 0.26)}` }} />
+        <div style={{ position: 'absolute', left: 136, top: 5, width: 204, height: 28, borderRadius: 12, background: `linear-gradient(180deg, ${withAlpha(cardColors.sideStart, 0.12)} 0%, rgba(255,255,255,0.03) 100%)`, border: `1px solid ${withAlpha(cardColors.sideStart, 0.18)}` }} />
+        <div style={{ position: 'absolute', left: 352, top: 4, right: 8, height: 30, borderRadius: 14, background: `linear-gradient(90deg, ${cardColors.pillStart} 0%, ${cardColors.pillEnd} 100%)`, boxShadow: `0 12px 24px ${withAlpha(cardColors.pillEnd, 0.35)}` }} />
+        {renderField('category', card.category.toUpperCase(), { left: 24, top: 5, width: 94, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize })}
+        {renderField('stock', card.stockName, { left: 136, top: 5, width: 204, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        <div style={{ position: 'absolute', left: 352, top: 4, right: 8, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, zIndex: 5 }}>
+          {renderField('value', valueWithSuffix, { left: 42, top: 4, width: 124, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: valueColor, fontSize: valueFontSize })}
+          {renderField('duration', durationLabel, { right: 18, top: 4, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }, { color: durationColor, fontSize: durationFontSize })}
+        </div>
+      </div>
+    )
+  }
+
+  if (variant === 'royalGlow') {
+    const categoryColor = rowStyle.category.color || '#ffffff'
+    const stockColor = rowStyle.stock.color || '#182033'
+    const valueColor = rowStyle.value.color || cardColors.tabEnd
+    const durationColor = rowStyle.duration.color || '#1f2740'
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 16, background: 'linear-gradient(90deg, rgba(82,25,184,0.98) 0%, rgba(120,50,255,0.95) 54%, rgba(94,34,205,0.98) 100%)', boxShadow: `0 16px 30px ${withAlpha(cardColors.sideEnd, 0.26)}`, overflow: 'hidden' }} />
+        <div style={{ position: 'absolute', left: 118, top: 5, width: 226, height: 28, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,245,255,0.92) 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.7)' }} />
+        <div style={{ position: 'absolute', left: 356, top: 5, right: 8, height: 28, borderRadius: 12, background: 'linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(248,244,255,0.92) 100%)' }} />
+        <div style={{ position: 'absolute', left: 12, top: 4, width: 102, height: 30, borderRadius: 13, background: styles.tab, boxShadow: `0 12px 22px ${styles.tabShadow}` }} />
+        {renderField('category', card.category.toUpperCase(), { left: 28, top: 4, width: 80, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize })}
+        {renderField('stock', card.stockName, { left: 118, top: 5, width: 226, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        <div style={{ position: 'absolute', left: 370, top: 8, width: 120, height: 22, borderRadius: 999, background: `linear-gradient(90deg, ${withAlpha(cardColors.tabStart, 0.14)} 0%, ${withAlpha(cardColors.tabEnd, 0.2)} 100%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 4 }}>
+          {renderField('value', valueWithSuffix, { left: 0, top: 0, width: 120, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: valueColor, fontSize: valueFontSize })}
+        </div>
+        {renderField('duration', durationLabel, { left: 500, top: 5, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: durationColor, fontSize: durationFontSize })}
+      </div>
+    )
+  }
+
+  if (variant === 'softFrame') {
+    const categoryColor = rowStyle.category.color || neutralText
+    const stockColor = rowStyle.stock.color || '#1d2538'
+    const valueColor = rowStyle.value.color || getSafeAccentColor(cardColors.tabEnd, '#334154')
+    const durationColor = rowStyle.duration.color || '#354255'
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', inset: 1, borderRadius: 16, background: 'linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(247,245,255,0.94) 100%)', border: '1px solid rgba(255,255,255,0.7)', boxShadow: `0 14px 28px ${withAlpha(cardColors.sideEnd, 0.12)}` }} />
+        <div style={{ position: 'absolute', left: 10, top: 9, width: 102, height: 20, borderRadius: 999, background: `linear-gradient(180deg, ${withAlpha(cardColors.tabStart, 0.22)} 0%, ${withAlpha(cardColors.tabEnd, 0.28)} 100%)`, border: `1px solid ${withAlpha(cardColors.tabEnd, 0.3)}` }} />
+        <div style={{ position: 'absolute', left: 124, top: 6, width: 282, height: 26, borderRadius: 12, background: 'rgba(255,255,255,0.92)', border: `1px solid ${withAlpha(cardColors.sideEnd, 0.12)}` }} />
+        <div style={{ position: 'absolute', left: 420, top: 4, right: 10, height: 30, borderRadius: 14, background: `linear-gradient(180deg, ${withAlpha(cardColors.tabStart, 0.1)} 0%, ${withAlpha(cardColors.tabEnd, 0.16)} 100%)`, border: `1px solid ${withAlpha(cardColors.tabEnd, 0.2)}` }} />
+        {renderField('category', card.category.toUpperCase(), { left: 24, top: 9, width: 84, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize, spanStyle: { letterSpacing: '0.04em' } })}
+        {renderField('stock', card.stockName, { left: 124, top: 6, width: 282, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        {renderField('value', valueWithSuffix, { left: 420, top: 6, right: 10, height: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: valueColor, fontSize: valueFontSize })}
+        {renderField('duration', durationLabel, { left: 420, top: 19, right: 10, height: 8, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: durationColor, fontSize: Math.max(8.2, durationFontSize - 1) })}
+      </div>
+    )
+  }
+
+  if (variant === 'ribbonStack') {
+    const categoryColor = rowStyle.category.color || getReadableTextColor(cardColors.tabStart, cardColors.tabEnd, '#ffffff', '#1b1f28')
+    const stockColor = rowStyle.stock.color || '#162331'
+    const returnsTextColor = getReadableTextColor(cardColors.pillStart, cardColors.pillEnd, '#ffffff', '#192538')
+    const valueColor = rowStyle.value.color || returnsTextColor
+    const durationColor = rowStyle.duration.color || withAlpha(returnsTextColor, 0.94)
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', left: 0, top: 4, width: 126, height: 30, background: styles.tab, clipPath: 'polygon(6% 0, 100% 0, 92% 100%, 0 100%)', boxShadow: `0 12px 22px ${styles.tabShadow}` }} />
+        <div style={{ position: 'absolute', left: 126, top: 4, width: 248, height: 30, borderRadius: 16, background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,248,248,0.98) 100%)', boxShadow: '0 12px 22px rgba(0,0,0,0.12)' }} />
+        <div style={{ position: 'absolute', left: 384, top: 3, right: 0, height: 32, borderRadius: 16, background: `linear-gradient(90deg, ${cardColors.pillStart} 0%, ${cardColors.pillEnd} 100%)`, boxShadow: `0 14px 22px ${withAlpha(cardColors.pillEnd, 0.34)}` }} />
+        {renderField('category', card.category.toUpperCase(), { left: 22, top: 4, width: 92, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize })}
+        {renderField('stock', card.stockName, { left: 126, top: 4, width: 248, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        {renderField('value', valueWithSuffix, { left: 404, top: 3, width: 108, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: valueColor, fontSize: valueFontSize })}
+        {renderField('duration', durationLabel, { right: 18, top: 3, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }, { color: durationColor, fontSize: durationFontSize })}
+      </div>
+    )
+  }
+
+  if (variant === 'sidebandClean') {
+    const categoryColor = rowStyle.category.color || '#ffffff'
+    const stockColor = rowStyle.stock.color || '#172433'
+    const valueColor = rowStyle.value.color || getSafeAccentColor(cardColors.tabEnd, '#172433')
+    const durationColor = rowStyle.duration.color || '#172433'
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(251,251,251,0.98) 100%)', boxShadow: '0 12px 24px rgba(66,84,101,0.12)', overflow: 'hidden' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, width: 18, height: 38, background: `linear-gradient(180deg, ${cardColors.tabStart} 0%, ${cardColors.tabEnd} 100%)` }} />
+        <div style={{ position: 'absolute', left: 30, top: 7, width: 112, height: 24, borderRadius: 10, background: styles.tab, boxShadow: `0 10px 18px ${styles.tabShadow}` }} />
+        <div style={{ position: 'absolute', left: 154, top: 7, width: 1, height: 24, background: 'rgba(15,31,42,0.08)' }} />
+        <div style={{ position: 'absolute', left: 406, top: 7, width: 1, height: 24, background: 'rgba(15,31,42,0.08)' }} />
+        {renderField('category', card.category.toUpperCase(), { left: 44, top: 7, width: 92, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize })}
+        {renderField('stock', card.stockName, { left: 158, top: 0, width: 242, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        {renderField('value', valueWithSuffix, { left: 430, top: 0, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: valueColor, fontSize: valueFontSize })}
+        {renderField('duration', durationLabel, { right: 18, top: 0, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }, { color: durationColor, fontSize: durationFontSize })}
+      </div>
+    )
+  }
+
+  if (variant === 'bold') {
+    const categoryColor = rowStyle.category.color || '#ffffff'
+    const stockColor = rowStyle.stock.color || '#18212f'
+    const returnsTextColor = getReadableTextColor(cardColors.tabStart, cardColors.tabEnd, '#ffffff', '#18212f')
+    const valueColor = rowStyle.value.color || returnsTextColor
+    const durationColor = rowStyle.duration.color || withAlpha(returnsTextColor, 0.92)
+
+    return (
+      <div style={{ position: 'relative', width: 684, height: 38 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'linear-gradient(180deg, rgba(255,255,255,0.99) 0%, rgba(250,244,239,0.98) 100%)', boxShadow: '0 16px 26px rgba(0,0,0,0.16)', overflow: 'hidden' }} />
+        <div style={{ position: 'absolute', left: 0, top: 0, width: 118, height: 38, background: styles.tab, clipPath: 'polygon(0 0, 100% 0, 90% 100%, 0 100%)', boxShadow: `0 14px 22px ${styles.tabShadow}` }} />
+        <div style={{ position: 'absolute', left: 410, top: 3, right: 4, height: 32, borderRadius: 12, background: styles.tab, boxShadow: `0 14px 22px ${styles.tabShadow}` }} />
+        <div style={{ position: 'absolute', left: 126, top: 0, width: 270, height: 38, borderRight: `1px solid ${withAlpha(cardColors.tabEnd, 0.15)}` }} />
+        {renderField('category', card.category.toUpperCase(), { left: 18, top: 0, width: 94, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: categoryColor, fontSize: categoryFontSize })}
+        {renderField('stock', card.stockName, { left: 126, top: 0, width: 270, height: 38, display: 'flex', alignItems: 'center', justifyContent: 'center' }, { color: stockColor, fontSize: stockFontSize })}
+        {renderField('value', valueWithSuffix, { left: 432, top: 3, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }, { color: valueColor, fontSize: valueFontSize })}
+        {renderField('duration', durationLabel, { right: 18, top: 3, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }, { color: durationColor, fontSize: durationFontSize })}
+      </div>
+    )
+  }
+
+  const categoryColor = rowStyle.category.color || getReadableTextColor(cardColors.tabStart, cardColors.tabEnd, '#ffffff', neutralText)
+  const stockColor = rowStyle.stock.color || '#162331'
+  const accentValueColor = getSafeAccentColor(cardColors.tabEnd, neutralText)
+  const valueColor = rowStyle.value.color || accentValueColor
+  const durationColor = rowStyle.duration.color || '#162331'
+
+  return (
+    <div style={{ position: 'relative', width: 684, height: 38 }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          borderRadius: 12,
+          background: rowSurface,
+          border: `2px solid ${rowBorder}`,
+          boxShadow: `0 12px 24px ${withAlpha(cardColors.tabEnd, 0.16)}`,
+          overflow: 'hidden',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 114,
+          top: 1,
+          width: 286,
+          height: 36,
+          background: stockSurface,
+          borderRight: `1px solid ${dividerColor}`,
+          zIndex: 1,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 401,
+          top: 1,
+          right: 1,
+          height: 36,
+          background: returnsSurface,
+          zIndex: 1,
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 112,
+          height: 38,
+          borderRadius: 10,
+          background: styles.tab,
+          boxShadow: `0 8px 18px ${styles.tabShadow}`,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-start',
+          paddingLeft: 16,
+          zIndex: 2,
+        }}
+      >
+        <InteractiveLayer
+          layerId={rowStyle.category.layerId}
+          selectedLayerIds={selectedLayerIds}
+          onSelectLayer={onSelectLayer}
+          onMove={(position) => onUpdateCardTextStyle('category', position)}
+          position={rowStyle.category}
+          scale={rowStyle.category.fontSize}
+          onScale={(updates) => onUpdateCardTextStyle('category', { fontSize: updates.scale })}
+          minScale={4}
+          selectionLabel="Category Text"
+          zIndex={8}
+          onDoubleClickAction={onStartEditingLayer}
+          isLocked={isTemplateLocked}
+        >
+          <span style={{ ...textStyle(rowStyle.category), color: categoryColor, fontSize: categoryFontSize, whiteSpace: 'nowrap' }}>{card.category.toUpperCase()}</span>
+        </InteractiveLayer>
+      </div>
+      <div style={{ position: 'absolute', left: 114, top: 1, width: 286, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+        <InteractiveLayer
+          layerId={rowStyle.stock.layerId}
+          selectedLayerIds={selectedLayerIds}
+          onSelectLayer={onSelectLayer}
+          onMove={(position) => onUpdateCardTextStyle('stock', position)}
+          position={rowStyle.stock}
+          scale={rowStyle.stock.fontSize}
+          onScale={(updates) => onUpdateCardTextStyle('stock', { fontSize: updates.scale })}
+          minScale={4}
+          selectionLabel="Stock Text"
+          zIndex={8}
+          onDoubleClickAction={onStartEditingLayer}
+          isLocked={isTemplateLocked}
+        >
+          <span style={{ ...textStyle(rowStyle.stock), color: stockColor, fontSize: stockFontSize, whiteSpace: 'nowrap' }}>{card.stockName}</span>
+        </InteractiveLayer>
+      </div>
+      <div style={{ position: 'absolute', left: 401, top: 1, right: 8, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, maxWidth: 258, justifyContent: 'center', flexWrap: 'nowrap' }}>
+          <InteractiveLayer
+            layerId={rowStyle.value.layerId}
+            selectedLayerIds={selectedLayerIds}
+            onSelectLayer={onSelectLayer}
+            onMove={(position) => onUpdateCardTextStyle('value', position)}
+            position={rowStyle.value}
+            scale={rowStyle.value.fontSize}
+            onScale={(updates) => onUpdateCardTextStyle('value', { fontSize: updates.scale })}
+            minScale={4}
+            selectionLabel="Value Text"
+            zIndex={8}
+            onDoubleClickAction={onStartEditingLayer}
+            isLocked={isTemplateLocked}
+          >
+            <span style={{ ...textStyle(rowStyle.value), color: valueColor, fontSize: valueFontSize, whiteSpace: 'nowrap' }}>{valueWithSuffix}</span>
+          </InteractiveLayer>
+          <InteractiveLayer
+            layerId={rowStyle.duration.layerId}
+            selectedLayerIds={selectedLayerIds}
+            onSelectLayer={onSelectLayer}
+            onMove={(position) => onUpdateCardTextStyle('duration', position)}
+            position={rowStyle.duration}
+            scale={rowStyle.duration.fontSize}
+            onScale={(updates) => onUpdateCardTextStyle('duration', { fontSize: updates.scale })}
+            minScale={4}
+            selectionLabel="Duration Text"
+            zIndex={8}
+            onDoubleClickAction={onStartEditingLayer}
+            isLocked={isTemplateLocked}
+          >
+            <span style={{ ...textStyle(rowStyle.duration), color: durationColor, fontSize: durationFontSize, whiteSpace: 'nowrap' }}>{durationLabel}</span>
+          </InteractiveLayer>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const BannerPreview = forwardRef(function BannerPreview(
-  { data, textStyles, layoutStyles, cardColorStyles, template, selectedLayerId, selectedLayerIds, editingLayerId, onSelectLayer, onAddLayerToSelection, onClearSelection, onStartEditingLayer, onStopEditingLayer, onFieldChange, onCardDataChange, onUpdateBannerTextStyle, onUpdateCardTextStyle, onUpdateLogoLayout, onUpdateCardLayout, isTemplateLocked },
+  { data, textStyles, layoutStyles, cardLayouts, cardColorStyles, template, selectedLayerId, selectedLayerIds, editingLayerId, onSelectLayer, onAddLayerToSelection, onClearSelection, onStartEditingLayer, onStopEditingLayer, onFieldChange, onCardDataChange, onUpdateBannerTextStyle, onUpdateCardTextStyle, onUpdateLogoLayout, onUpdateCardLayout, isTemplateLocked },
   ref
 ) {
   const rightSelectRef = useRef({ active: false, pointerId: null, additive: false })
@@ -656,6 +985,14 @@ const BannerPreview = forwardRef(function BannerPreview(
   const headingAccentColor = textStyles.heading.color ? textStyles.heading.color : template.typography.headingAccentColor
   const extraColor = textStyles.extra.color || template.typography.extraColor
   const disclaimerColor = textStyles.disclaimer.color || template.typography.disclaimerColor
+  const isWeeklyReport = data.reportType === 'weekly'
+  const headingText = isWeeklyReport ? `${data.totalProfits} Profits Booked This Week` : null
+  const activeCardLayouts = cardLayouts || layoutStyles.monthlyCards || []
+  const weeklyHeaderColor = getWeeklyHeaderColor(template)
+  const weeklyHeaderShadow =
+    new Set(['minimal', 'softFrame', 'ribbonStack', 'sidebandClean']).has(template.cards.variant)
+      ? 'none'
+      : '0 2px 10px rgba(0,0,0,0.15)'
 
   const selectLayerFromPoint = (clientX, clientY, additive = false) => {
     const elements = document.elementsFromPoint(clientX, clientY)
@@ -766,7 +1103,7 @@ const BannerPreview = forwardRef(function BannerPreview(
         />
       </InteractiveLayer>
 
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 66, zIndex: 2, display: 'flex', justifyContent: 'center' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: isWeeklyReport ? 50 : 66, zIndex: 2, display: 'flex', justifyContent: 'center' }}>
         <div style={{ width: 748, display: 'flex', justifyContent: 'center' }}>
           <InteractiveLayer
             layerId="heading"
@@ -782,57 +1119,115 @@ const BannerPreview = forwardRef(function BannerPreview(
             onDoubleClickAction={onStartEditingLayer}
             isLocked={isTemplateLocked}
           >
-            <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
-              {data.totalProfits} Profits Booked Already in <span style={{ color: headingAccentColor, transition: 'color 260ms ease' }}>{data.month}</span>
-            </h1>
+            {isWeeklyReport ? (
+              <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
+                {headingText}
+              </h1>
+            ) : (
+              <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
+                {data.totalProfits} Profits Booked Already in <span style={{ color: headingAccentColor, transition: 'color 260ms ease' }}>{data.month}</span>
+              </h1>
+            )}
           </InteractiveLayer>
         </div>
       </div>
 
-      {data.cards.slice(0, 4).map((card, index) => {
-        const cardLayout = layoutStyles.cards[index]
-        const cardText = textStyles.cards[index]
-        const cardColors = cardColorStyles[index]
+      {isWeeklyReport ? (
+        <>
+          <div style={{ position: 'absolute', left: 66, top: 106, width: 668, display: 'grid', gridTemplateColumns: '112px 286px 270px', columnGap: 0, zIndex: 3, color: weeklyHeaderColor, fontFamily: resolveFontFamily(template.typography.bodyFont), fontSize: 10.5, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', textShadow: weeklyHeaderShadow }}>
+            <span>Segment</span>
+            <span style={{ textAlign: 'center' }}>Stock Name</span>
+            <span style={{ textAlign: 'center' }}>Returns</span>
+          </div>
 
-        return (
-          <InteractiveLayer
-            key={`${card.category}-${card.stockName}-${index}`}
-            layerId={`card-frame-${index}`}
-            selectedLayerIds={selectedLayerIds}
-            onSelectLayer={onSelectLayer}
-            onMove={(position) => onUpdateCardLayout(index, position)}
-            position={cardLayout}
-            scale={cardLayout.scale}
-            onScale={(updates) => onUpdateCardLayout(index, updates)}
-            className="absolute left-0 top-0"
-            selectionLabel={`Card ${index + 1}`}
-            zIndex={7}
-            isLocked={isTemplateLocked}
-          >
-            <div style={{ transform: `scale(${cardLayout.scale})`, transformOrigin: 'top left' }}>
-              <BannerCardContent
-                card={card}
-                cardColors={cardColors}
-                template={template}
-                selectedLayerId={selectedLayerId}
+          {data.cards.slice(0, 4).map((card, index) => {
+            const rowLayout = activeCardLayouts[index]
+            const cardText = textStyles.cards[index]
+            const cardColors = cardColorStyles[index]
+
+            return (
+              <InteractiveLayer
+                key={`${card.category}-${card.stockName}-${index}`}
+                layerId={`card-frame-${index}`}
                 selectedLayerIds={selectedLayerIds}
                 onSelectLayer={onSelectLayer}
-                onStartEditingLayer={onStartEditingLayer}
-                onUpdateCardTextStyle={(layer, updates) => onUpdateCardTextStyle(index, layer, updates)}
-                isTemplateLocked={isTemplateLocked}
-                cardStyle={{
-                  category: { ...cardText.category, layerId: `card-${index}-category` },
-                  value: { ...cardText.value, layerId: `card-${index}-value` },
-                  duration: { ...cardText.duration, layerId: `card-${index}-duration` },
-                  stock: { ...cardText.stock, layerId: `card-${index}-stock` },
-                }}
-              />
-            </div>
-          </InteractiveLayer>
-        )
-      })}
+                onMove={(position) => onUpdateCardLayout(index, position)}
+                position={rowLayout}
+                scale={rowLayout.scale}
+                onScale={(updates) => onUpdateCardLayout(index, updates)}
+                className="absolute left-0 top-0"
+                selectionLabel={`Row ${index + 1}`}
+                zIndex={7}
+                isLocked={isTemplateLocked}
+              >
+                <div style={{ transform: `scale(${rowLayout.scale})`, transformOrigin: 'top left' }}>
+                  <WeeklyReportRow
+                    card={card}
+                    cardColors={cardColors}
+                    template={template}
+                    selectedLayerIds={selectedLayerIds}
+                    onSelectLayer={onSelectLayer}
+                    onStartEditingLayer={onStartEditingLayer}
+                    onUpdateCardTextStyle={(layer, updates) => onUpdateCardTextStyle(index, layer, updates)}
+                    isTemplateLocked={isTemplateLocked}
+                    rowStyle={{
+                      category: { ...cardText.category, layerId: `card-${index}-category` },
+                      value: { ...cardText.value, layerId: `card-${index}-value` },
+                      duration: { ...cardText.duration, layerId: `card-${index}-duration` },
+                      stock: { ...cardText.stock, layerId: `card-${index}-stock` },
+                    }}
+                  />
+                </div>
+              </InteractiveLayer>
+            )
+          })}
+        </>
+      ) : (
+        data.cards.slice(0, 4).map((card, index) => {
+          const cardLayout = activeCardLayouts[index]
+          const cardText = textStyles.cards[index]
+          const cardColors = cardColorStyles[index]
 
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 58, zIndex: 8, display: 'flex', justifyContent: 'center' }}>
+          return (
+            <InteractiveLayer
+              key={`${card.category}-${card.stockName}-${index}`}
+              layerId={`card-frame-${index}`}
+              selectedLayerIds={selectedLayerIds}
+              onSelectLayer={onSelectLayer}
+              onMove={(position) => onUpdateCardLayout(index, position)}
+              position={cardLayout}
+              scale={cardLayout.scale}
+              onScale={(updates) => onUpdateCardLayout(index, updates)}
+              className="absolute left-0 top-0"
+              selectionLabel={`Card ${index + 1}`}
+              zIndex={7}
+              isLocked={isTemplateLocked}
+            >
+              <div style={{ transform: `scale(${cardLayout.scale})`, transformOrigin: 'top left' }}>
+                <BannerCardContent
+                  card={card}
+                  cardColors={cardColors}
+                  template={template}
+                  selectedLayerId={selectedLayerId}
+                  selectedLayerIds={selectedLayerIds}
+                  onSelectLayer={onSelectLayer}
+                  onStartEditingLayer={onStartEditingLayer}
+                  onUpdateCardTextStyle={(layer, updates) => onUpdateCardTextStyle(index, layer, updates)}
+                  isTemplateLocked={isTemplateLocked}
+                  cardStyle={{
+                    category: { ...cardText.category, layerId: `card-${index}-category` },
+                    value: { ...cardText.value, layerId: `card-${index}-value` },
+                    duration: { ...cardText.duration, layerId: `card-${index}-duration` },
+                    stock: { ...cardText.stock, layerId: `card-${index}-stock` },
+                  }}
+                />
+              </div>
+            </InteractiveLayer>
+          )
+        })
+      )}
+
+      <div style={{ position: 'absolute', left: 0, right: 0, bottom: isWeeklyReport ? 44 : 58, zIndex: 8, display: 'flex', justifyContent: 'center' }}>
         <InteractiveLayer
           layerId="extra"
           selectedLayerIds={selectedLayerIds}
@@ -847,7 +1242,9 @@ const BannerPreview = forwardRef(function BannerPreview(
           onDoubleClickAction={onStartEditingLayer}
           isLocked={isTemplateLocked}
         >
-          <div style={{ ...textStyle(textStyles.extra), color: extraColor, textShadow: '0 2px 14px rgba(0, 0, 0, 0.26)', transition: 'color 260ms ease' }}>+{data.extraCount} More</div>
+          <div style={{ ...textStyle(textStyles.extra), color: extraColor, textShadow: '0 2px 14px rgba(0, 0, 0, 0.26)', transition: 'color 260ms ease' }}>
+            {isWeeklyReport ? `& ${data.extraCount} MORE >` : `+${data.extraCount} More`}
+          </div>
         </InteractiveLayer>
       </div>
 

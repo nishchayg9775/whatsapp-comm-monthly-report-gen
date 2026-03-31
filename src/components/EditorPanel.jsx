@@ -78,6 +78,7 @@ export default function EditorPanel(props) {
     data,
     textStyles,
     layoutStyles,
+    cardLayouts,
     cardColorStyles,
     selectedTemplateId,
     builtInTemplateOptions,
@@ -89,6 +90,7 @@ export default function EditorPanel(props) {
     hasSavedLayout,
     isTemplateLocked,
     onModeChange,
+    onReportTypeChange,
     onCsvUpload,
     onCsvMappingChange,
     onFallbackCategoryChange,
@@ -126,6 +128,9 @@ export default function EditorPanel(props) {
 
   const [activeTab, setActiveTab] = useState('Data')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showMappingDetails, setShowMappingDetails] = useState(false)
+  const [showCardEditor, setShowCardEditor] = useState(false)
+  const [showTemplateRail, setShowTemplateRail] = useState(false)
   const selectedLayer = useMemo(() => parseLayerId(selectedLayerId), [selectedLayerId])
   const templates = builtInTemplateOptions ?? []
   const activeTemplate = templates.find((template) => template.id === selectedTemplateId) ?? templates[0]
@@ -133,6 +138,7 @@ export default function EditorPanel(props) {
   const selectedCardIndex = selectedLayer?.kind === 'cardFrame' || selectedLayer?.kind === 'cardText' ? selectedLayer.cardIndex : null
   const selectedCard = selectedCardIndex !== null ? data.cards[selectedCardIndex] : null
   const selectedCardColors = selectedCardIndex !== null ? cardColorStyles[selectedCardIndex] : null
+  const activeCardLayouts = cardLayouts ?? layoutStyles.monthlyCards ?? []
   const selectedBannerStyle = selectedLayer?.kind === 'bannerText' ? textStyles[selectedLayer.layer] : null
   const selectedCardTextStyle = selectedLayer?.kind === 'cardText' ? textStyles.cards[selectedLayer.cardIndex][selectedLayer.layer] : null
   const selectionTitle = !selectedLayer ? 'Nothing selected' : selectedLayer.kind === 'logo' ? 'Logo' : selectedLayer.kind === 'bannerText' ? selectedLayer.layer : selectedLayer.kind === 'cardFrame' ? `Card ${selectedLayer.cardIndex + 1}` : `Card ${selectedLayer.cardIndex + 1} ${selectedLayer.layer}`
@@ -163,15 +169,39 @@ export default function EditorPanel(props) {
         ))}
       </div>
 
+      <div className="rounded-[22px] border border-white/10 bg-white/[0.03] p-4">
+        <div className="mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/45">Report Type</p>
+          <p className="mt-1 max-w-[34ch] text-sm leading-5 text-white/55">Monthly aur weekly banner ko yahin se instantly switch karo.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => onReportTypeChange('monthly')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition sm:px-4.5 ${data.reportType === 'monthly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
+          >
+            Monthly Report
+          </button>
+          <button
+            type="button"
+            onClick={() => onReportTypeChange('weekly')}
+            className={`rounded-full px-4 py-2 text-sm font-semibold transition sm:px-4.5 ${data.reportType === 'weekly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
+          >
+            Weekly Report
+          </button>
+        </div>
+      </div>
+
       <div className="flex-1 space-y-4 overflow-y-auto pr-1">
         {activeTab === 'Data' ? (
           <>
             <Section title="Workspace Summary" description="Important state at a glance.">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5"><div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">Mode</div><div className="mt-1 text-sm font-bold text-white">{mode === 'auto' ? 'Auto CSV' : 'Manual'}</div></div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5"><div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">Template</div><div className="mt-1 text-sm font-bold text-white">{activeTemplate?.shortName || 'Default'}</div></div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5"><div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">CSV Rows</div><div className="mt-1 text-sm font-bold text-white">{csvState.rows.length || 'No file'}</div></div>
-                <div className="rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5"><div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-white/40">Selection</div><div className="mt-1 text-sm font-bold text-white">{selectedLayer ? selectionTitle : 'None'}</div></div>
+              <div className="flex flex-wrap gap-2">
+                <Pill>{data.reportType === 'weekly' ? 'Weekly Report' : 'Monthly Report'}</Pill>
+                <Pill tone={mode === 'auto' ? 'good' : 'default'}>{mode === 'auto' ? 'Auto CSV' : 'Manual Mode'}</Pill>
+                <Pill>{activeTemplate?.shortName || 'Default Template'}</Pill>
+                <Pill tone={csvState.rows.length ? 'good' : 'default'}>{csvState.rows.length ? `${csvState.rows.length} CSV Rows` : 'No CSV File'}</Pill>
+                <Pill>{selectedLayer ? selectionTitle : 'No Selection'}</Pill>
               </div>
             </Section>
 
@@ -198,38 +228,52 @@ export default function EditorPanel(props) {
               </div>
             </Section>
 
-            <Section title="Step 2: Mapping and Validation" description="Only the CSV essentials, without extra clutter.">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  ['stockName', 'Stock Name'],
-                  ['profit', 'Profit'],
-                  ['category', 'Category'],
-                  ['aging', 'Aging'],
-                ].map(([key, label]) => (
-                  <Field key={key} label={label}>
-                    <Select value={csvState.mapping[key] ?? ''} onChange={(event) => onCsvMappingChange(key, event.target.value)}>
-                      <option value="">Not mapped</option>
-                      {(csvState.columns ?? []).map((column) => <option key={column.id} value={column.id}>{column.label}</option>)}
-                    </Select>
-                  </Field>
-                ))}
-                <Field label="Fallback Category">
-                  <Select value={csvState.fallbackCategory} onChange={(event) => onFallbackCategoryChange(event.target.value)}>
-                    {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
-                  </Select>
-                </Field>
-              </div>
+            <Section
+              title="Step 2: Mapping and Validation"
+              description="Mapping ko tabhi kholna padega jab auto-detection enough na ho."
+              action={
+                csvState.columns.length ? (
+                  <Button onClick={() => setShowMappingDetails((current) => !current)}>
+                    {showMappingDetails ? 'Hide Mapping' : 'Show Mapping'}
+                  </Button>
+                ) : null
+              }
+            >
               <div className="mt-3 flex flex-wrap gap-2">
                 <Pill tone={csvState.rows.length ? 'good' : 'default'}>{csvState.rows.length ? 'CSV ready' : 'Waiting for CSV'}</Pill>
                 <Pill tone={validation.missingAging ? 'warn' : 'default'}>Missing Aging: {validation.missingAging}</Pill>
                 <Pill tone={validation.invalidProfit ? 'danger' : 'default'}>Invalid Profit: {validation.invalidProfit}</Pill>
                 <Pill tone={validation.unknownCategory ? 'warn' : 'default'}>Unknown Category: {validation.unknownCategory}</Pill>
               </div>
+              {showMappingDetails ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ['stockName', 'Stock Name'],
+                    ['profit', 'Profit'],
+                    ['category', 'Category'],
+                    ['aging', 'Aging'],
+                  ].map(([key, label]) => (
+                    <Field key={key} label={label}>
+                      <Select value={csvState.mapping[key] ?? ''} onChange={(event) => onCsvMappingChange(key, event.target.value)}>
+                        <option value="">Not mapped</option>
+                        {(csvState.columns ?? []).map((column) => <option key={column.id} value={column.id}>{column.label}</option>)}
+                      </Select>
+                    </Field>
+                  ))}
+                  <Field label="Fallback Category">
+                    <Select value={csvState.fallbackCategory} onChange={(event) => onFallbackCategoryChange(event.target.value)}>
+                      {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+                    </Select>
+                  </Field>
+                </div>
+              ) : null}
             </Section>
 
             <Section title="Step 3: Banner Content" description="High-frequency content edits stay simple here.">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="Month"><Input value={data.month} onChange={(event) => onFieldChange('month', event.target.value)} /></Field>
+              <div className={`grid gap-3 ${data.reportType === 'monthly' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+                {data.reportType === 'monthly' ? (
+                  <Field label="Month"><Input value={data.month} onChange={(event) => onFieldChange('month', event.target.value)} /></Field>
+                ) : null}
                 <Field label="Total Profits"><Input value={data.totalProfits} onChange={(event) => onFieldChange('totalProfits', event.target.value)} /></Field>
                 <Field label="Extra Count"><Input value={data.extraCount} onChange={(event) => onFieldChange('extraCount', event.target.value)} /></Field>
               </div>
@@ -244,49 +288,82 @@ export default function EditorPanel(props) {
               </div>
             </Section>
 
-            <Section title="Cards" description="Only the essential card fields stay visible by default.">
-              <div className="space-y-3">
-                {data.cards.map((card, index) => (
-                  <div key={index} className="rounded-[20px] border border-white/10 bg-black/15 p-3">
-                    <div className="mb-3 flex items-center justify-between gap-2">
-                      <div><div className="text-sm font-bold text-white">Card {index + 1}</div><div className="text-xs text-white/50">{card.category}</div></div>
-                      <Button onClick={() => onSelectLayer(`card-frame-${index}`)}>Select</Button>
+            <Section
+              title={data.reportType === 'weekly' ? 'Rows' : 'Cards'}
+              description="Ye full content editor ab collapse rehta hai taaki panel light feel ho."
+              action={<Button onClick={() => setShowCardEditor((current) => !current)}>{showCardEditor ? 'Hide Editor' : 'Open Editor'}</Button>}
+            >
+              {showCardEditor ? (
+                <div className="space-y-3">
+                  {data.cards.map((card, index) => (
+                    <div key={index} className="rounded-[20px] border border-white/10 bg-black/15 p-3">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <div><div className="text-sm font-bold text-white">{data.reportType === 'weekly' ? `Row ${index + 1}` : `Card ${index + 1}`}</div><div className="text-xs text-white/50">{card.category}</div></div>
+                        <Button onClick={() => onSelectLayer(`card-frame-${index}`)}>Select</Button>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Field label="Category"><Select value={card.category} onChange={(event) => onCardDataChange(index, 'category', event.target.value)}>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</Select></Field>
+                        <Field label="Stock Name"><Input value={card.stockName} onChange={(event) => onCardDataChange(index, 'stockName', event.target.value)} /></Field>
+                        <Field label="Value"><Input value={card.value} onChange={(event) => onCardDataChange(index, 'value', event.target.value)} /></Field>
+                        <Field label="Duration"><Input value={card.duration} onChange={(event) => onCardDataChange(index, 'duration', event.target.value)} /></Field>
+                      </div>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <Field label="Category"><Select value={card.category} onChange={(event) => onCardDataChange(index, 'category', event.target.value)}>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</Select></Field>
-                      <Field label="Stock Name"><Input value={card.stockName} onChange={(event) => onCardDataChange(index, 'stockName', event.target.value)} /></Field>
-                      <Field label="Value"><Input value={card.value} onChange={(event) => onCardDataChange(index, 'value', event.target.value)} /></Field>
-                      <Field label="Duration"><Input value={card.duration} onChange={(event) => onCardDataChange(index, 'duration', event.target.value)} /></Field>
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-white/12 bg-black/15 px-4 py-4 text-sm text-white/55">
+                  {data.reportType === 'weekly' ? 'Rows auto-fill ya manual content edit karne ke liye editor kholo.' : 'Cards auto-fill ya manual content edit karne ke liye editor kholo.'}
+                </div>
+              )}
             </Section>
           </>
         ) : null}
 
         {activeTab === 'Design' ? (
           <>
-            <Section title="Template Browser" description="Horizontal strip keeps template switching fast and less confusing.">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div><div className="text-sm font-bold text-white">{activeTemplate?.name}</div><div className="mt-1 text-xs text-white/55">{activeTemplate?.description}</div></div>
-                <Pill>{templates.length} built-in templates</Pill>
+            <Section
+              title={`${data.reportType === 'weekly' ? 'Weekly' : 'Monthly'} Templates`}
+              description="Template choice current report type ke liye alag save hoti hai."
+              action={<Button onClick={() => setShowTemplateRail((current) => !current)}>{showTemplateRail ? 'Hide Templates' : 'Browse Templates'}</Button>}
+            >
+              <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="max-w-[30ch]">
+                  <div className="text-sm font-bold text-white">{activeTemplate?.name}</div>
+                  <div className="mt-1 text-sm leading-5 text-white/55">{activeTemplate?.description}</div>
+                </div>
+                <div className="shrink-0">
+                  <Pill>{templates.length} {data.reportType === 'weekly' ? 'weekly' : 'monthly'} templates</Pill>
+                </div>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-1">
-                {templates.map((template) => (
-                  <button key={template.id} type="button" onClick={() => onTemplateChange(template.id)} className={`min-w-[184px] rounded-[22px] border p-3 text-left transition ${template.id === selectedTemplateId ? 'border-[#56e7a1] bg-white/[0.08]' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
-                    <div className="mb-3 h-24 overflow-hidden rounded-[18px] border border-white/10" style={{ background: template.preview.background }}>
-                      <div className="flex h-full items-end justify-center gap-2 px-3 pb-3">
-                        {CATEGORIES.map((category) => {
-                          const palette = template.categoryPalettes[category]
-                          return <div key={category} className="relative h-14 w-8 rounded-[12px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2.5 rounded-t-[12px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
-                        })}
+              {showTemplateRail ? (
+                <div className="flex gap-3 overflow-x-auto pb-1">
+                  {templates.map((template) => (
+                    <button key={template.id} type="button" onClick={() => onTemplateChange(template.id)} className={`min-w-[154px] rounded-[20px] border p-3 text-left transition ${template.id === selectedTemplateId ? 'border-[#56e7a1] bg-white/[0.08]' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
+                      <div className="mb-3 h-20 overflow-hidden rounded-[16px] border border-white/10" style={{ background: template.preview.background }}>
+                        <div className="flex h-full items-end justify-center gap-2 px-3 pb-3">
+                          {CATEGORIES.map((category) => {
+                            const palette = template.categoryPalettes[category]
+                            return <div key={category} className="relative h-12 w-7 rounded-[10px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2.5 rounded-t-[10px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
+                          })}
+                        </div>
                       </div>
+                      <div className="text-sm font-bold text-white">{template.name}</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-[20px] border border-white/10 bg-black/15 p-3">
+                  <div className="mb-3 h-24 overflow-hidden rounded-[18px] border border-white/10" style={{ background: activeTemplate?.preview.background }}>
+                    <div className="flex h-full items-end justify-center gap-2 px-3 pb-3">
+                      {CATEGORIES.map((category) => {
+                        const palette = activeTemplate.categoryPalettes[category]
+                        return <div key={category} className="relative h-14 w-8 rounded-[12px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2.5 rounded-t-[12px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
+                      })}
                     </div>
-                    <div className="text-sm font-bold text-white">{template.name}</div>
-                  </button>
-                ))}
-              </div>
+                  </div>
+                  <div className="text-sm font-bold text-white">Active: {activeTemplate?.name}</div>
+                </div>
+              )}
             </Section>
 
             <Section title="Canvas Controls" description="Global preview tools grouped together.">
@@ -299,7 +376,7 @@ export default function EditorPanel(props) {
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
                 <Button onClick={onCenterLogo}>Center Logo</Button>
-                <Button onClick={onCenterCards}>Center Cards</Button>
+                <Button onClick={onCenterCards}>{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</Button>
                 <Button onClick={onAutoFitText}>Auto Fit Text</Button>
                 <Button onClick={onMatchTemplateTypography}>Match Template Typography</Button>
               </div>
@@ -331,11 +408,11 @@ export default function EditorPanel(props) {
 
         {activeTab === 'Design' && selectedLayer?.kind === 'cardFrame' && selectedCard && selectedCardColors ? (
           <>
-            <Section title="Card Layout" description="Placement and scale separated from colors for clarity.">
+            <Section title={data.reportType === 'weekly' ? 'Row Layout' : 'Card Layout'} description="Placement and scale separated from colors for clarity.">
               <div className="grid gap-3 sm:grid-cols-3">
-                <Field label="X"><Input type="number" value={layoutStyles.cards[selectedCardIndex].x} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { x: toNumber(event.target.value) })} /></Field>
-                <Field label="Y"><Input type="number" value={layoutStyles.cards[selectedCardIndex].y} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { y: toNumber(event.target.value) })} /></Field>
-                <Field label="Scale"><Input type="number" step="0.05" value={layoutStyles.cards[selectedCardIndex].scale} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { scale: toNumber(event.target.value, 1) })} /></Field>
+                <Field label="X"><Input type="number" value={activeCardLayouts[selectedCardIndex].x} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { x: toNumber(event.target.value) })} /></Field>
+                <Field label="Y"><Input type="number" value={activeCardLayouts[selectedCardIndex].y} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { y: toNumber(event.target.value) })} /></Field>
+                <Field label="Scale"><Input type="number" step="0.05" value={activeCardLayouts[selectedCardIndex].scale} onChange={(event) => onUpdateCardLayout(selectedCardIndex, { scale: toNumber(event.target.value, 1) })} /></Field>
               </div>
             </Section>
             <Section title="Card Colors" description="Most-used color controls first.">
