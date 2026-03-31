@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useRef } from 'react'
+import logoSrc from '../assets/logo.png'
 
 const FONT_FAMILIES = {
   Outfit: "'Outfit', 'Inter', sans-serif",
@@ -6,8 +7,6 @@ const FONT_FAMILIES = {
   Georgia: "Georgia, 'Times New Roman', serif",
   Trebuchet: "'Trebuchet MS', sans-serif",
 }
-
-const LOGO_SRC = `${import.meta.env.BASE_URL}logo.png`
 
 function resolveFontFamily(fontFamily) {
   return FONT_FAMILIES[fontFamily] || FONT_FAMILIES.Outfit
@@ -753,9 +752,8 @@ const BannerPreview = forwardRef(function BannerPreview(
         isLocked={isTemplateLocked}
       >
         <img
-          src={LOGO_SRC}
+          src={logoSrc}
           alt="Univest"
-          crossOrigin="anonymous"
           style={{
             width: 116,
             height: 'auto',
