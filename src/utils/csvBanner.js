@@ -423,8 +423,10 @@ export function analyzeCsvData({ columns, rows, mapping, fallbackCategory, month
     })
   })
 
+  const profitableRows = cleanedRows.filter((row) => row.profitValue > 0)
+
   const topPerformers = CATEGORY_ORDER.map((category) => {
-    const bestRow = cleanedRows
+    const bestRow = profitableRows
       .filter((row) => row.category === category)
       .reduce((best, current) => {
         if (!best || current.profitValue > best.profitValue) {
@@ -457,14 +459,15 @@ export function analyzeCsvData({ columns, rows, mapping, fallbackCategory, month
     missingRequiredMappings,
     validationSummary,
     cleanedRows,
+    profitableRows,
     invalidRowCount: Math.max(0, rows.length - cleanedRows.length),
     topPerformers,
     topPerformerIds,
-    bannerData: cleanedRows.length
+    bannerData: profitableRows.length
       ? {
           month: month || getCurrentMonthName(),
-          totalProfits: String(cleanedRows.length),
-          extraCount: String(Math.max(0, cleanedRows.length - CATEGORY_ORDER.length)),
+          totalProfits: String(profitableRows.length),
+          extraCount: String(Math.max(0, profitableRows.length - topPerformers.length)),
           cards,
           disclaimer,
         }
