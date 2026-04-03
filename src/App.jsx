@@ -13,8 +13,6 @@ import {
   analyzeCsvData,
   buildFilePattern,
   buildHeaderSignature,
-  createCsvSampleContent,
-  createCsvTemplateContent,
   detectColumnMapping,
   detectMonthFromFileContext,
   getCurrentMonthName,
@@ -401,16 +399,6 @@ function persistTemplateLockState(isLocked) {
   } catch (error) {
     console.error('Failed to persist template lock', error)
   }
-}
-
-function downloadTextFile(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = filename
-  link.click()
-  URL.revokeObjectURL(url)
 }
 
 function downloadBlobFile(filename, blob) {
@@ -877,14 +865,6 @@ function App() {
     setMode('auto')
     pushToast('Auto fill applied')
   }, [applyDesignUpdate, csvAnalysis.bannerData, csvState.detectedMonth, pushToast])
-
-  const handleDownloadCsvTemplate = useCallback(() => {
-    downloadTextFile('stock-banner-template.csv', createCsvTemplateContent())
-  }, [])
-
-  const handleDownloadCsvSample = useCallback(() => {
-    downloadTextFile('stock-banner-sample.csv', createCsvSampleContent())
-  }, [])
 
   const updateField = useCallback((field, value) => {
     applyDesignUpdate((current) => ({
@@ -1459,27 +1439,27 @@ function App() {
             <div ref={previewStageRef} className="overflow-hidden rounded-[24px] border border-white/8 bg-[#06110e] p-3">
               <div className="mb-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/70">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Auto Fit Text</button>
-                    <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</button>
-                    <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Clear Selection</button>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Auto Fit</button>
+                    <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</button>
+                    <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Clear</button>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPreviewTools((current) => !current)}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80"
+                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80"
                   >
-                    {showPreviewTools ? 'Hide Tools' : 'More Tools'}
+                    {showPreviewTools ? 'Hide' : 'More'}
                   </button>
                 </div>
                 {showPreviewTools ? (
-                  <div className="mt-2 flex flex-wrap gap-2 border-t border-white/8 pt-2">
-                    <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom -</button>
-                    <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
-                    <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Zoom +</button>
-                    <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Center Logo</button>
-                    <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Match Template Typography</button>
-                    <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 font-semibold text-white/80">Reset Card Colors</button>
+                  <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/8 pt-2">
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Zoom -</button>
+                    <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Zoom +</button>
+                    <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Center Logo</button>
+                    <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Match Type</button>
+                    <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Reset Colors</button>
                   </div>
                 ) : null}
               </div>
@@ -1563,8 +1543,6 @@ function App() {
               onFallbackCategoryChange={handleFallbackCategoryChange}
               onClearCsv={handleClearCsv}
               onApplyAutoFill={handleApplyAutoFill}
-              onDownloadCsvTemplate={handleDownloadCsvTemplate}
-              onDownloadCsvSample={handleDownloadCsvSample}
               onSaveLayout={handleSaveLayout}
               onResetToSaved={handleResetToSaved}
               onResetToFactory={handleResetToFactory}
