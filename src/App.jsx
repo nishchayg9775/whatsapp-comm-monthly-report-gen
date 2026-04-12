@@ -86,6 +86,7 @@ function parseSelectedLayerId(layerId) {
 function createDefaultData() {
   return {
     reportType: 'monthly',
+    customHeading: '',
     month: getCurrentMonthName(),
     totalProfits: '120',
     extraCount: '116',
@@ -281,10 +282,10 @@ function normalizeDesignState(maybeDesignState) {
         source.selectedTemplateIds?.monthly ||
         source.selectedTemplateId ||
         defaults.selectedTemplateIds.weekly,
-      monthly:
-        source.selectedTemplateIds?.monthly ||
-        source.selectedTemplateId ||
-        defaults.selectedTemplateIds.monthly,
+        monthly:
+          source.selectedTemplateIds?.monthly ||
+          source.selectedTemplateId ||
+          defaults.selectedTemplateIds.monthly,
     },
     selectedTemplateId:
       source.selectedTemplateIds?.[reportType] ||
@@ -1343,27 +1344,27 @@ function App() {
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(40,116,90,0.22),_transparent_36%),linear-gradient(180deg,#071310_0%,#0a1714_100%)] text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-[1500px] flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="mb-5 rounded-[28px] border border-white/10 bg-white/5 px-5 py-5 shadow-[0_20px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-            <div className="min-w-0 max-w-[540px]">
-              <h1 className="text-xl font-black tracking-tight text-white sm:text-[1.8rem]">
+        <header className="mb-4 rounded-[24px] border border-white/10 bg-white/5 px-4 py-4 shadow-[0_20px_80px_rgba(0,0,0,0.3)] backdrop-blur-xl">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div className="min-w-0 max-w-[520px]">
+              <h1 className="text-[1.15rem] font-black tracking-tight text-white sm:text-[1.45rem]">
                 Monthly Report Banner Gen WP-Comm
               </h1>
-              <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-white/70">
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{data.reportType === 'weekly' ? 'Weekly' : 'Monthly'}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{selectedTemplate.shortName}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{mode === 'auto' ? 'Auto Mode' : 'Manual Mode'}</span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">{csvState.rows.length ? `${csvState.rows.length} CSV Rows` : 'No CSV'}</span>
+              <div className="mt-2.5 flex flex-wrap gap-1.5 text-[10px] font-semibold text-white/70">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{data.reportType === 'weekly' ? 'Weekly' : 'Monthly'}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{selectedTemplate.shortName}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{mode === 'auto' ? 'Auto Mode' : 'Manual Mode'}</span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">{csvState.rows.length ? `${csvState.rows.length} CSV Rows` : 'No CSV'}</span>
               </div>
             </div>
 
             <div className="flex flex-col items-start gap-3 xl:items-end">
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 <button
                   type="button"
                   onClick={handleUndo}
                   disabled={!canUndo}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
                 >
                   Undo
                 </button>
@@ -1371,14 +1372,14 @@ function App() {
                   type="button"
                   onClick={handleRedo}
                   disabled={!canRedo}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-40"
                 >
                   Redo
                 </button>
                 <button
                   type="button"
                   onClick={handleSaveLayout}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
                 >
                   Save Layout
                 </button>
@@ -1386,7 +1387,7 @@ function App() {
                   type="button"
                   onClick={handleExport}
                   disabled={isExporting}
-                  className="rounded-full bg-[linear-gradient(135deg,#3fe391_0%,#23b86d_100%)] px-5 py-2.5 text-sm font-bold text-[#082116] shadow-[0_18px_40px_rgba(39,196,116,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="rounded-full bg-[linear-gradient(135deg,#3fe391_0%,#23b86d_100%)] px-4 py-2 text-[12px] font-bold text-[#082116] shadow-[0_18px_40px_rgba(39,196,116,0.3)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
                 >
                   {isExporting ? 'Rendering...' : 'Download PNG'}
                 </button>
@@ -1396,18 +1397,18 @@ function App() {
                 <button
                   type="button"
                   onClick={() => setShowExportMenu((current) => !current)}
-                  className="rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
+                  className="rounded-full border border-white/15 bg-white/5 px-3 py-2 text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10"
                 >
                   {showExportMenu ? 'Hide Export Presets' : 'More Export Presets'}
                 </button>
 
                 {showExportMenu ? (
-                  <div className="absolute right-0 top-[calc(100%+10px)] z-20 flex min-w-[220px] flex-col gap-2 rounded-[20px] border border-white/10 bg-[#12201b]/95 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+                  <div className="absolute right-0 top-[calc(100%+10px)] z-20 flex min-w-[220px] flex-col gap-1.5 rounded-[18px] border border-white/10 bg-[#12201b]/95 p-2.5 shadow-[0_18px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
                     <button
                       type="button"
                       onClick={handleWpPnExport}
                       disabled={isExporting}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
                     >
                       WP PN &lt;30KB
                     </button>
@@ -1415,7 +1416,7 @@ function App() {
                       type="button"
                       onClick={handleWpCommExport}
                       disabled={isExporting}
-                      className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-left text-sm font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[12px] font-semibold text-white transition hover:border-white/25 hover:bg-white/10 disabled:opacity-60"
                     >
                       WP Comm &lt;500KB
                     </button>
@@ -1426,40 +1427,40 @@ function App() {
           </div>
         </header>
 
-        <main className="grid flex-1 gap-5 xl:grid-cols-[minmax(0,1fr)_450px]">
-          <section className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-5">
-            <div className="mb-4 flex items-center justify-between gap-4">
+        <main className="grid flex-1 gap-4 xl:grid-cols-[minmax(0,1fr)_450px]">
+          <section className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-[18px]">
+            <div className="mb-3.5 flex items-center justify-between gap-4">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-white/45">Live Preview</p>
-                <p className="mt-1 text-sm text-white/60">CSV auto-fill ke baad bhi preview me content tune kiya ja sakta hai, aur lock mode accidental movement rokta hai.</p>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-white/45">Live Preview</p>
+                <p className="mt-1 text-[12px] text-white/58">CSV auto-fill ke baad bhi preview me content tune kiya ja sakta hai.</p>
               </div>
-              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs font-semibold text-white/55">800 x 400</span>
+              <span className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[10px] font-semibold text-white/55">800 x 400</span>
             </div>
 
             <div ref={previewStageRef} className="overflow-hidden rounded-[24px] border border-white/8 bg-[#06110e] p-3">
-              <div className="mb-3 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/70">
+              <div className="mb-3 rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2 text-xs text-white/70">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex flex-wrap gap-1.5">
-                    <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Auto Fit</button>
-                    <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</button>
-                    <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Clear</button>
+                    <button type="button" onClick={handleAutoFitText} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Auto Fit</button>
+                    <button type="button" onClick={handleCenterCards} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</button>
+                    <button type="button" onClick={clearSelection} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Clear</button>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowPreviewTools((current) => !current)}
-                    className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80"
+                    className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80"
                   >
                     {showPreviewTools ? 'Hide' : 'More'}
                   </button>
                 </div>
                 {showPreviewTools ? (
                   <div className="mt-2 flex flex-wrap gap-1.5 border-t border-white/8 pt-2">
-                    <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Zoom -</button>
-                    <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
-                    <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Zoom +</button>
-                    <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Center Logo</button>
-                    <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Match Type</button>
-                    <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/80">Reset Colors</button>
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.max(0.7, Number((current - 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Zoom -</button>
+                    <button type="button" onClick={() => setPreviewZoom(1)} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">{Math.round(previewZoom * 100)}%</button>
+                    <button type="button" onClick={() => setPreviewZoom((current) => Math.min(1.35, Number((current + 0.1).toFixed(2))))} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Zoom +</button>
+                    <button type="button" onClick={handleCenterLogo} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Center Logo</button>
+                    <button type="button" onClick={handleMatchTemplateTypography} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Match Type</button>
+                    <button type="button" onClick={resetAllCardColorStyles} className="rounded-full border border-white/10 bg-white/5 px-2 py-[3px] text-[10px] font-semibold text-white/80">Reset Colors</button>
                   </div>
                 ) : null}
               </div>
@@ -1494,30 +1495,30 @@ function App() {
                 </div>
               </div>
 
-              <div className="mt-3 flex flex-wrap items-center gap-2 rounded-[18px] border border-white/8 bg-black/20 px-3 py-2 text-xs text-white/65">
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 rounded-[16px] border border-white/8 bg-black/20 px-2.5 py-2 text-xs text-white/65">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                   Selected: {selectedLayerId || 'None'}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                   Template: {selectedTemplate.shortName}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                   Report: {data.reportType === 'weekly' ? 'Weekly' : 'Monthly'}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                   Mode: {mode === 'auto' ? 'Auto' : 'Manual'}
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
                   Export: 800x400 PNG
                 </span>
               </div>
             </div>
           </section>
 
-          <aside className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-5">
+          <aside className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.28)] sm:p-[18px]">
             <div className="mb-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.36em] text-white/45">Controls</p>
-              <p className="mt-1 text-sm text-white/60">CSV upload, remembered mappings, auto-fill, reset presets, template lock aur layer styling sab yahin manage hoga.</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.32em] text-white/45">Controls</p>
+              <p className="mt-1 text-[12px] text-white/58">CSV, templates, styling, and export in one place.</p>
             </div>
 
             <EditorPanel

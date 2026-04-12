@@ -446,11 +446,19 @@ function TextEditorOverlay({ editingLayerId, data, onFieldChange, onCardDataChan
 
   if (editingLayerId === 'heading') {
     content = (
-      <div className="grid gap-3 sm:grid-cols-2">
-        <OverlayInput label="Total profits" value={data.totalProfits} onChange={(value) => onFieldChange('totalProfits', value)} onClose={onClose} autoFocus />
-        {data.reportType === 'monthly' ? (
-          <OverlayInput label="Month" value={data.month} onChange={(value) => onFieldChange('month', value)} onClose={onClose} />
-        ) : null}
+      <div className="space-y-3">
+        <OverlayInput
+          label="Heading Text"
+          value={data.customHeading}
+          onChange={(value) => onFieldChange('customHeading', value)}
+          onClose={onClose}
+          autoFocus
+          multiline
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <OverlayInput label="Total profits" value={data.totalProfits} onChange={(value) => onFieldChange('totalProfits', value)} onClose={onClose} />
+          {data.reportType === 'monthly' ? <OverlayInput label="Month" value={data.month} onChange={(value) => onFieldChange('month', value)} onClose={onClose} /> : null}
+        </div>
       </div>
     )
   } else if (editingLayerId === 'extra') {
@@ -986,7 +994,8 @@ const BannerPreview = forwardRef(function BannerPreview(
   const extraColor = textStyles.extra.color || template.typography.extraColor
   const disclaimerColor = textStyles.disclaimer.color || template.typography.disclaimerColor
   const isWeeklyReport = data.reportType === 'weekly'
-  const headingText = isWeeklyReport ? `${data.totalProfits} Profits Booked This Week` : null
+  const generatedHeading = isWeeklyReport ? `${data.totalProfits} Profits Booked This Week` : `${data.totalProfits} Profits Booked Already in ${data.month}`
+  const headingText = data.customHeading?.trim() || generatedHeading
   const activeCardLayouts = cardLayouts || layoutStyles.monthlyCards || []
   const weeklyHeaderColor = getWeeklyHeaderColor(template)
   const weeklyHeaderShadow =
@@ -1119,15 +1128,17 @@ const BannerPreview = forwardRef(function BannerPreview(
             onDoubleClickAction={onStartEditingLayer}
             isLocked={isTemplateLocked}
           >
-            {isWeeklyReport ? (
-              <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
-                {headingText}
-              </h1>
-            ) : (
-              <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
-                {data.totalProfits} Profits Booked Already in <span style={{ color: headingAccentColor, transition: 'color 260ms ease' }}>{data.month}</span>
-              </h1>
-            )}
+            <h1 style={{ ...textStyle(textStyles.heading), margin: 0, width: 748, color: headingColor, textAlign: 'center', lineHeight: 1.01, textShadow: '0 3px 18px rgba(0, 0, 0, 0.18)', transition: 'color 260ms ease' }}>
+              {data.customHeading?.trim() ? headingText : (
+                isWeeklyReport ? (
+                  headingText
+                ) : (
+                  <>
+                    {data.totalProfits} Profits Booked Already in <span style={{ color: headingAccentColor, transition: 'color 260ms ease' }}>{data.month}</span>
+                  </>
+                )
+              )}
+            </h1>
           </InteractiveLayer>
         </div>
       </div>

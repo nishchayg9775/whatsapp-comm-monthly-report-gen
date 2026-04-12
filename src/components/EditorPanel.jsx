@@ -21,11 +21,11 @@ function parseLayerId(layerId) {
 
 function Section({ title, description, children, action }) {
   return (
-    <section className="rounded-[18px] border border-white/10 bg-white/[0.03] p-3">
+    <section className="rounded-[16px] border border-white/10 bg-white/[0.03] p-2.5">
       <div className="mb-2 flex items-start justify-between gap-2.5">
         <div>
-          <h3 className="text-[0.92rem] font-bold text-white">{title}</h3>
-          {description ? <p className="mt-1 text-[11px] leading-[1.15rem] text-white/55">{description}</p> : null}
+          <h3 className="text-[0.86rem] font-bold text-white">{title}</h3>
+          {description ? <p className="mt-1 text-[10px] leading-[1.05rem] text-white/52">{description}</p> : null}
         </div>
         {action}
       </div>
@@ -37,18 +37,18 @@ function Section({ title, description, children, action }) {
 function Field({ label, children }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-[9px] font-semibold uppercase tracking-[0.2em] text-white/45">{label}</span>
+      <span className="mb-1 block text-[8px] font-semibold uppercase tracking-[0.18em] text-white/45">{label}</span>
       {children}
     </label>
   )
 }
 
 function Input(props) {
-  return <input {...props} className={`w-full rounded-xl border border-white/10 bg-black/20 px-2.5 py-[0.4rem] text-[12px] text-white outline-none transition placeholder:text-white/25 focus:border-white/25 ${props.className ?? ''}`} />
+  return <input {...props} className={`w-full rounded-lg border border-white/10 bg-black/20 px-2 py-[0.32rem] text-[11px] text-white outline-none transition placeholder:text-white/25 focus:border-white/25 ${props.className ?? ''}`} />
 }
 
 function Select(props) {
-  return <select {...props} className={`w-full rounded-xl border border-white/10 bg-black/20 px-2.5 py-[0.4rem] text-[12px] text-white outline-none transition focus:border-white/25 ${props.className ?? ''}`} />
+  return <select {...props} className={`w-full rounded-lg border border-white/10 bg-black/20 px-2 py-[0.32rem] text-[11px] text-white outline-none transition focus:border-white/25 ${props.className ?? ''}`} />
 }
 
 function Button({ children, tone = 'default', className = '', ...props }) {
@@ -58,7 +58,7 @@ function Button({ children, tone = 'default', className = '', ...props }) {
       : tone === 'danger'
         ? 'border-[#ff7a95]/30 bg-[#ff7a95]/10 text-[#ffd2db]'
         : 'border-white/10 bg-white/5 text-white hover:border-white/20 hover:bg-white/10'
-  return <button {...props} type={props.type ?? 'button'} className={`rounded-xl border px-2.5 py-[0.4rem] text-[12px] font-semibold transition disabled:opacity-40 ${toneClass} ${className}`}>{children}</button>
+  return <button {...props} type={props.type ?? 'button'} className={`rounded-lg border px-2.5 py-[5px] text-[11px] font-semibold transition disabled:opacity-40 ${toneClass} ${className}`}>{children}</button>
 }
 
 function Pill({ children, tone = 'default' }) {
@@ -70,7 +70,7 @@ function Pill({ children, tone = 'default' }) {
         : tone === 'danger'
           ? 'border-[#ff7a95]/25 bg-[#ff7a95]/10 text-[#ffd2db]'
           : 'border-white/10 bg-white/5 text-white/72'
-  return <span className={`rounded-full border px-2 py-0.75 text-[10px] font-semibold ${toneClass}`}>{children}</span>
+  return <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold ${toneClass}`}>{children}</span>
 }
 
 export default function EditorPanel(props) {
@@ -146,13 +146,13 @@ export default function EditorPanel(props) {
   const selectionTitle = !selectedLayer ? 'Nothing selected' : selectedLayer.kind === 'logo' ? 'Logo' : selectedLayer.kind === 'bannerText' ? selectedLayer.layer : selectedLayer.kind === 'cardFrame' ? `Card ${selectedLayer.cardIndex + 1}` : `Card ${selectedLayer.cardIndex + 1} ${selectedLayer.layer}`
 
   return (
-    <div className="flex max-h-[calc(100vh-210px)] flex-col gap-4 overflow-hidden">
-      <div className="sticky top-0 z-20 rounded-[22px] border border-[#56e7a1]/20 bg-[#0f1d18]/95 p-3.5 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
+    <div className="flex max-h-[calc(100vh-210px)] flex-col gap-3 overflow-hidden">
+      <div className="sticky top-0 z-20 rounded-[18px] border border-[#56e7a1]/20 bg-[#0f1d18]/95 p-3 shadow-[0_18px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[9px] font-semibold uppercase tracking-[0.24em] text-[#61e6ad]/70">Selected Layer</p>
-            <p className="mt-1 text-sm font-bold text-white">{selectionTitle}</p>
-            <p className="mt-1 text-[11px] text-white/55">{selectedLayerIds.length > 1 ? `${selectedLayerIds.length} layers selected` : selectedLayer ? 'Focused controls shown below' : 'Select a layer to reveal only the needed controls'}</p>
+            <p className="text-[8px] font-semibold uppercase tracking-[0.24em] text-[#61e6ad]/70">Selected Layer</p>
+            <p className="mt-1 text-[0.9rem] font-bold text-white">{selectionTitle}</p>
+            <p className="mt-1 text-[10px] text-white/55">{selectedLayerIds.length > 1 ? `${selectedLayerIds.length} layers selected` : selectedLayer ? 'Focused controls shown below' : 'Select a layer to reveal only the needed controls'}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button onClick={() => onSelectLayer?.('heading')}>Heading</Button>
@@ -165,40 +165,40 @@ export default function EditorPanel(props) {
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((tab) => (
-          <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${activeTab === tab ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}>
+          <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`rounded-full px-3 py-[5px] text-[11px] font-semibold transition ${activeTab === tab ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}>
             {tab}
           </button>
         ))}
       </div>
 
-      <div className="rounded-[18px] border border-white/10 bg-white/[0.03] p-3">
+      <div className="rounded-[16px] border border-white/10 bg-white/[0.03] p-2.5">
         <div className="mb-2">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/45">Report Type</p>
-          <p className="mt-1 max-w-[30ch] text-[11px] leading-[1.15rem] text-white/55">Monthly aur weekly banner ko yahin se switch karo.</p>
+          <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/45">Report Type</p>
+          <p className="mt-1 max-w-[28ch] text-[10px] leading-[1.05rem] text-white/55">Monthly aur weekly banner yahin se switch karo.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
             onClick={() => onReportTypeChange('monthly')}
-            className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${data.reportType === 'monthly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
+            className={`rounded-full px-3 py-[5px] text-[11px] font-semibold transition ${data.reportType === 'monthly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
           >
             Monthly Report
           </button>
           <button
             type="button"
             onClick={() => onReportTypeChange('weekly')}
-            className={`rounded-full px-3 py-1.5 text-[12px] font-semibold transition ${data.reportType === 'weekly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
+            className={`rounded-full px-3 py-[5px] text-[11px] font-semibold transition ${data.reportType === 'weekly' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70 hover:bg-white/10'}`}
           >
             Weekly Report
           </button>
         </div>
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto pr-1">
+      <div className="flex-1 space-y-3 overflow-y-auto pr-1">
         {activeTab === 'Data' ? (
           <>
             <Section title="Workspace Summary" description="Important state at a glance.">
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-5">
                 <Pill>{data.reportType === 'weekly' ? 'Weekly Report' : 'Monthly Report'}</Pill>
                 <Pill tone={mode === 'auto' ? 'good' : 'default'}>{mode === 'auto' ? 'Auto CSV' : 'Manual Mode'}</Pill>
                 <Pill>{activeTemplate?.shortName || 'Default Template'}</Pill>
@@ -212,7 +212,7 @@ export default function EditorPanel(props) {
                 <button type="button" onClick={() => onModeChange('auto')} className={`rounded-full px-3 py-1.5 text-[12px] font-semibold ${mode === 'auto' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70'}`}>Auto Mode</button>
                 <button type="button" onClick={() => onModeChange('manual')} className={`rounded-full px-3 py-1.5 text-[12px] font-semibold ${mode === 'manual' ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/70'}`}>Manual Mode</button>
               </div>
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-2.5 sm:grid-cols-2">
                 <Field label="Upload CSV">
                   <Input type="file" accept=".csv,text/csv" onChange={(event) => onCsvUpload?.(event.target.files?.[0] ?? null)} />
                 </Field>
@@ -246,7 +246,7 @@ export default function EditorPanel(props) {
                 <Pill tone={validation.unknownCategory ? 'warn' : 'default'}>Unknown Category: {validation.unknownCategory}</Pill>
               </div>
               {showMappingDetails ? (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                   {[
                     ['stockName', 'Stock Name'],
                     ['profit', 'Profit'],
@@ -270,7 +270,24 @@ export default function EditorPanel(props) {
             </Section>
 
             <Section title="Step 3: Banner Content" description="High-frequency content edits stay simple here.">
-              <div className={`grid gap-3 ${data.reportType === 'monthly' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
+              <div className="mb-2.5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/45">Heading Override</p>
+                  <p className="mt-1 max-w-[28ch] text-[10px] leading-[1.05rem] text-white/55">Leave blank to keep the auto-generated heading.</p>
+                </div>
+                <Button onClick={() => onFieldChange('customHeading', '')} tone="default" className="whitespace-nowrap">
+                  Clear
+                </Button>
+              </div>
+              <Field label="Heading Text">
+                <textarea
+                  value={data.customHeading}
+                  onChange={(event) => onFieldChange('customHeading', event.target.value)}
+                  placeholder={data.reportType === 'weekly' ? '120 Profits Booked This Week' : `120 Profits Booked Already in ${data.month}`}
+                  className="min-h-[72px] w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/25 focus:border-white/25"
+                />
+              </Field>
+              <div className={`mt-3 grid gap-2.5 ${data.reportType === 'monthly' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}>
                 {data.reportType === 'monthly' ? (
                   <Field label="Month"><Input value={data.month} onChange={(event) => onFieldChange('month', event.target.value)} /></Field>
                 ) : null}
@@ -294,14 +311,14 @@ export default function EditorPanel(props) {
               action={<Button onClick={() => setShowCardEditor((current) => !current)}>{showCardEditor ? 'Hide Editor' : 'Open Editor'}</Button>}
             >
               {showCardEditor ? (
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {data.cards.map((card, index) => (
-                    <div key={index} className="rounded-[20px] border border-white/10 bg-black/15 p-3">
-                      <div className="mb-3 flex items-center justify-between gap-2">
+                    <div key={index} className="rounded-[18px] border border-white/10 bg-black/15 p-2.5">
+                      <div className="mb-2.5 flex items-center justify-between gap-2">
                         <div><div className="text-sm font-bold text-white">{data.reportType === 'weekly' ? `Row ${index + 1}` : `Card ${index + 1}`}</div><div className="text-xs text-white/50">{card.category}</div></div>
                         <Button onClick={() => onSelectLayer(`card-frame-${index}`)}>Select</Button>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="grid gap-2.5 sm:grid-cols-2">
                         <Field label="Category"><Select value={card.category} onChange={(event) => onCardDataChange(index, 'category', event.target.value)}>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</Select></Field>
                         <Field label="Stock Name"><Input value={card.stockName} onChange={(event) => onCardDataChange(index, 'stockName', event.target.value)} /></Field>
                         <Field label="Value"><Input value={card.value} onChange={(event) => onCardDataChange(index, 'value', event.target.value)} /></Field>
@@ -324,12 +341,12 @@ export default function EditorPanel(props) {
             <Section
               title={`${data.reportType === 'weekly' ? 'Weekly' : 'Monthly'} Templates`}
               description="Template choice current report type ke liye alag save hoti hai."
-              action={<Button className="whitespace-nowrap px-3.5" onClick={() => setShowTemplateRail((current) => !current)}>{showTemplateRail ? 'Hide' : 'Browse'}</Button>}
+              action={<Button className="whitespace-nowrap px-3" onClick={() => setShowTemplateRail((current) => !current)}>{showTemplateRail ? 'Hide' : 'Browse'}</Button>}
             >
               <div className="mb-3 space-y-3">
                 <div className="max-w-[28ch]">
-                  <div className="text-sm font-bold text-white">{activeTemplate?.name}</div>
-                  <div className="mt-1 text-[11px] leading-[1.15rem] text-white/55">{activeTemplate?.description}</div>
+                  <div className="text-[0.9rem] font-bold text-white">{activeTemplate?.name}</div>
+                  <div className="mt-1 text-[10px] leading-[1.05rem] text-white/55">{activeTemplate?.description}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Pill>{templates.length} templates</Pill>
@@ -337,32 +354,32 @@ export default function EditorPanel(props) {
                 </div>
               </div>
               {showTemplateRail ? (
-                <div className="flex gap-2.5 overflow-x-auto pb-1">
+                <div className="flex gap-2 overflow-x-auto pb-1">
                   {templates.map((template) => (
-                    <button key={template.id} type="button" onClick={() => onTemplateChange(template.id)} className={`min-w-[144px] rounded-[18px] border p-2.5 text-left transition ${template.id === selectedTemplateId ? 'border-[#56e7a1] bg-white/[0.08]' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
-                      <div className="mb-2.5 h-[4.5rem] overflow-hidden rounded-[14px] border border-white/10" style={{ background: template.preview.background }}>
-                        <div className="flex h-full items-end justify-center gap-1.5 px-2.5 pb-2.5">
+                    <button key={template.id} type="button" onClick={() => onTemplateChange(template.id)} className={`min-w-[132px] rounded-[16px] border p-2 text-left transition ${template.id === selectedTemplateId ? 'border-[#56e7a1] bg-white/[0.08]' : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'}`}>
+                      <div className="mb-2 h-[4rem] overflow-hidden rounded-[12px] border border-white/10" style={{ background: template.preview.background }}>
+                        <div className="flex h-full items-end justify-center gap-[5px] px-2 pb-2">
                           {CATEGORIES.map((category) => {
                             const palette = template.categoryPalettes[category]
                             return <div key={category} className="relative h-[2.75rem] w-[1.6rem] rounded-[9px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2 rounded-t-[9px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
                           })}
                         </div>
                       </div>
-                      <div className="text-sm font-bold text-white">{template.name}</div>
+                      <div className="text-[0.9rem] font-bold text-white">{template.name}</div>
                     </button>
                   ))}
                 </div>
               ) : (
-                <div className="rounded-[18px] border border-white/10 bg-black/15 p-2.5">
-                  <div className="mb-2.5 h-[5.5rem] overflow-hidden rounded-[16px] border border-white/10" style={{ background: activeTemplate?.preview.background }}>
-                    <div className="flex h-full items-end justify-center gap-1.5 px-2.5 pb-2.5">
+                <div className="rounded-[16px] border border-white/10 bg-black/15 p-2.5">
+                  <div className="mb-2.5 h-[5rem] overflow-hidden rounded-[14px] border border-white/10" style={{ background: activeTemplate?.preview.background }}>
+                    <div className="flex h-full items-end justify-center gap-[5px] px-2 pb-2">
                       {CATEGORIES.map((category) => {
                         const palette = activeTemplate.categoryPalettes[category]
-                        return <div key={category} className="relative h-[3rem] w-[1.75rem] rounded-[10px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2.5 rounded-t-[10px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
+                        return <div key={category} className="relative h-[2.8rem] w-[1.65rem] rounded-[9px] border border-white/25 bg-white/85"><div className="absolute left-0 right-0 top-0 h-2.5 rounded-t-[9px]" style={{ background: `linear-gradient(135deg, ${palette.tabStart}, ${palette.tabEnd})` }} /></div>
                       })}
                     </div>
                   </div>
-                  <div className="text-sm font-bold text-white">Active: {activeTemplate?.name}</div>
+                  <div className="text-[0.9rem] font-bold text-white">Active: {activeTemplate?.name}</div>
                 </div>
               )}
             </Section>
@@ -371,11 +388,11 @@ export default function EditorPanel(props) {
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="Preview Zoom"><Input type="range" min="0.7" max="1.35" step="0.05" value={previewZoom} onChange={(event) => onPreviewZoomChange(toNumber(event.target.value, 1))} /></Field>
                 <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
-                  <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-white/40">Template Lock</div>
+                  <div className="text-[8px] font-semibold uppercase tracking-[0.22em] text-white/40">Template Lock</div>
                   <button type="button" onClick={() => onTemplateLockChange(!isTemplateLocked)} className={`mt-2 rounded-full px-3 py-1 text-[11px] font-bold ${isTemplateLocked ? 'bg-[#56e7a1] text-[#072116]' : 'border border-white/10 bg-white/5 text-white/75'}`}>{isTemplateLocked ? 'Locked' : 'Unlocked'}</button>
                 </div>
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
                 <Button onClick={onCenterLogo}>Center Logo</Button>
                 <Button onClick={onCenterCards}>{data.reportType === 'weekly' ? 'Center Rows' : 'Center Cards'}</Button>
                 <Button onClick={onAutoFitText}>Auto Fit Text</Button>
